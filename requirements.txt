@@ -1,0 +1,10 @@
+# AI 숏폼 릴스 스튜디오 핵심 의존성 패키지
+streamlit>=1.30.0
+google-genai>=2.0.0
+python-dotenv>=1.0.0
+pydantic>=2.0.0
+pillow>=10.0.0
+pandas>=2.0.0
+plotly>=5.0.0
+fonttools>=4.0.0
+tqdm>=4.60.0

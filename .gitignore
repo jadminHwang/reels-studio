@@ -1,0 +1,20 @@
+# Python 가상환경 및 캐시
+.venv/
+venv/
+__pycache__/
+*.pyc
+
+# 환경 변수 (보안)
+.env
+
+# 편집 임시 파일 및 대용량 출력물
+temp_clips/
+temp_preview/
+outputs/*.mp4
+inputs/*.mp4
+inputs/*.mov
+
+# IDE 설정
+.vscode/
+.idea/
+.DS_Store
