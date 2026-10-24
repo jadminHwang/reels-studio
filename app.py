@@ -535,21 +535,32 @@ if st.session_state.page == "upload":
 
     uploaded_files = st.file_uploader(
         "영상 파일들을 선택하세요 (.mp4, .mov)",
-        type=["mp4", "mov"],
+        type=["mp4", "mov", "MOV", "MP4", "m4v"],
         accept_multiple_files=True,
         label_visibility="collapsed",
     )
 
     if uploaded_files:
         for f in uploaded_files:
-            target_path = SESSION_INPUTS_DIR / f.name
+            safe_name = Path(f.name).name
+            target_path = SESSION_INPUTS_DIR / safe_name
             if not target_path.exists():
                 with open(target_path, "wb") as out:
-                    out.write(f.getbuffer())
+                    shutil.copyfileobj(f, out, length=64 * 1024)
+
+    # 모바일 고용량 업로드 팁 안내
+    st.markdown(
+        """
+        <div style="font-size:0.72rem; color:#8C7B65; margin-top:0.35rem; line-height:1.4;">
+            💡 <b>스마트폰 업로드 팁</b>: 최신 스마트폰의 4K 원본 영상은 100MB를 초과하여 전송이 느리거나 끊길 수 있습니다. <b>FHD(1080p) 설정</b>이나 <b>카카오톡 '나에게 보내기(일반/고화질)'</b>로 가볍게 압축된 영상을 올리시면 5배 이상 빠르게 완성됩니다.
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
 
     # 현재 세션의 업로드 영상 목록만 조회 (과거 흔적 없음)
     existing_videos = sorted(
-        list(SESSION_INPUTS_DIR.glob("*.mp4")) + list(SESSION_INPUTS_DIR.glob("*.mov")),
+        list(SESSION_INPUTS_DIR.glob("*.mp4")) + list(SESSION_INPUTS_DIR.glob("*.mov")) + list(SESSION_INPUTS_DIR.glob("*.MOV")) + list(SESSION_INPUTS_DIR.glob("*.MP4")),
         key=lambda p: (int(p.stem) if p.stem.isdigit() else p.stem),
     )
 
