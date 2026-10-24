@@ -12,3 +12,4 @@ enableCORS = false
 enableXsrfProtection = false
 enableStaticServing = true
 maxUploadSize = 2000
+runOnSave = true

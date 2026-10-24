@@ -343,6 +343,7 @@ def render_reels(
         cmd = [
             ffmpeg_exe,
             "-y",
+            "-threads", "0",
             "-ss", f"{start_sec:.3f}",
             "-t", f"{duration:.3f}",
             "-i", str(input_video),
@@ -433,6 +434,7 @@ def render_reels(
     burn_cmd = [
         ffmpeg_exe,
         "-y",
+        "-threads", "0",
         "-i", str(merged_with_audio),
         "-vf", subtitle_filter,
         "-c:v", "libx264",

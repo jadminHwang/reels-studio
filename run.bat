@@ -38,6 +38,18 @@ if not exist "outputs" mkdir outputs
 if not exist "assets\bgm" mkdir "assets\bgm"
 if not exist "assets\fonts" mkdir "assets\fonts"
 
+:: 2-1. 최신 업데이트 자동 확인 (Git Pull)
+where git >nul 2>&1
+if %errorlevel% equ 0 (
+    echo [⟳] GitHub 원격 저장소 최신 업데이트 확인 중...
+    git pull origin main --quiet >nul 2>&1
+    if %errorlevel% equ 0 (
+        echo [✓] 최신 코드로 동기화 완료되었습니다.
+    ) else (
+        echo [!] 오프라인이거나 원격 동기화를 건너뜁니다.
+    )
+)
+
 :: 3. 브라우저 자동 오픈 예약 (2초 후 오픈)
 start "" cmd /c "timeout /t 2 /nobreak >nul & start http://localhost:8501"
 
