@@ -8,6 +8,7 @@ __pycache__/
 .env
 
 # 편집 임시 파일 및 대용량 출력물
+timeline.json
 temp_clips/
 temp_preview/
 outputs/*
