@@ -11,6 +11,13 @@ from pathlib import Path
 import pandas as pd
 import streamlit as st
 
+st.set_page_config(
+    page_title="메바초이 | Reels Studio",
+    page_icon="🎬",
+    layout="centered",
+    initial_sidebar_state="collapsed",
+)
+
 # Windows 터미널 한글 출력 지원
 if sys.platform == "win32":
     sys.stdout.reconfigure(encoding="utf-8")
@@ -412,6 +419,11 @@ st.markdown(
         vertical-align: middle;
         line-height: 1;
     }
+
+    /* 사이드바 이중화 제거 및 단일 메인 뷰포트 통일 */
+    [data-testid="stSidebar"], [data-testid="collapsedControl"] {
+        display: none !important;
+    }
     </style>
     """,
     unsafe_allow_html=True,
@@ -445,117 +457,62 @@ with col_hdr2:
 st.markdown("<hr style='margin:0.5rem 0 0.85rem 0;'/>", unsafe_allow_html=True)
 
 # ==========================================
-# 5. 사이드바 설정 패널 (접힘 상태 지원)
+# 5. 서체 데이터 프리셋 (전역 단일 기준)
 # ==========================================
-with st.sidebar:
-    st.markdown('<div class="stitch-pill-soft">환경 설정</div>', unsafe_allow_html=True)
-    st.markdown('<div class="font-headline" style="font-weight:700; font-size:1.15rem; margin-top:0.4rem; color:#2E3230;">제작 환경 설정</div>', unsafe_allow_html=True)
-    st.caption("스마트폰 릴스 렌더링 스타일 및 연출 옵션")
-    st.divider()
+AVAILABLE_FONTS = [
+    {
+        "id": "Bithumb Gothic Basic",
+        "title": "빗썸 고딕 Basic (추천 / 쇼츠 기본)",
+        "badge": "추천",
+        "sample": "먹을래요? ✨ 100만 뷰 떡상 릴스 자막",
+    },
+    {
+        "id": "Bithumb Gothic Original",
+        "title": "빗썸 고딕 Original",
+        "badge": "오리지널",
+        "sample": "먹을래요? ✨ 100만 뷰 떡상 릴스 자막",
+    },
+    {
+        "id": "GangwonEduAll Bold",
+        "title": "강원교육모두 Bold (쇼츠 대세)",
+        "badge": "쇼츠 대세",
+        "sample": "먹을래요? ✨ 100만 뷰 떡상 릴스 자막",
+    },
+    {
+        "id": "Griun Yeeun",
+        "title": "그리운 예은체 (감성 손글씨)",
+        "badge": "감성 손글씨",
+        "sample": "먹을래요? ✨ 100만 뷰 떡상 릴스 자막",
+    },
+    {
+        "id": "Gmarket Sans Bold",
+        "title": "Gmarket Sans Bold",
+        "badge": "강렬한 임팩트",
+        "sample": "먹을래요? ✨ 100만 뷰 떡상 릴스 자막",
+    },
+    {
+        "id": "Pretendard Black",
+        "title": "Pretendard Black",
+        "badge": "모던 미니멀",
+        "sample": "먹을래요? ✨ 100만 뷰 떡상 릴스 자막",
+    },
+]
 
-    AVAILABLE_FONTS = [
-        {
-            "id": "Bithumb Gothic Basic",
-            "title": "빗썸 고딕 Basic (추천 / 쇼츠 기본)",
-            "badge": "추천",
-            "sample": "먹을래요? ✨ 100만 뷰 떡상 릴스 자막",
-        },
-        {
-            "id": "Bithumb Gothic Original",
-            "title": "빗썸 고딕 Original",
-            "badge": "오리지널",
-            "sample": "먹을래요? ✨ 100만 뷰 떡상 릴스 자막",
-        },
-        {
-            "id": "GangwonEduAll Bold",
-            "title": "강원교육모두 Bold (쇼츠 대세)",
-            "badge": "쇼츠 대세",
-            "sample": "먹을래요? ✨ 100만 뷰 떡상 릴스 자막",
-        },
-        {
-            "id": "Griun Yeeun",
-            "title": "그리운 예은체 (감성 손글씨)",
-            "badge": "감성 손글씨",
-            "sample": "먹을래요? ✨ 100만 뷰 떡상 릴스 자막",
-        },
-        {
-            "id": "Gmarket Sans Bold",
-            "title": "Gmarket Sans Bold",
-            "badge": "강렬한 임팩트",
-            "sample": "먹을래요? ✨ 100만 뷰 떡상 릴스 자막",
-        },
-        {
-            "id": "Pretendard Black",
-            "title": "Pretendard Black",
-            "badge": "모던 미니멀",
-            "sample": "먹을래요? ✨ 100만 뷰 떡상 릴스 자막",
-        },
-    ]
-
-    st.markdown('<div style="font-weight:700; font-size:0.85rem; color:#5E5548; margin-bottom:0.25rem;">자막 폰트 선택</div>', unsafe_allow_html=True)
-
-    font_ids = [f["id"] for f in AVAILABLE_FONTS]
-    cur_sel_font = st.session_state.get("selected_font", "Bithumb Gothic Basic")
-    cur_idx = font_ids.index(cur_sel_font) if cur_sel_font in font_ids else 0
-
-    def on_sidebar_font_change():
-        st.session_state.selected_font = st.session_state.sidebar_font_select
-
-    selected_font = st.selectbox(
-        "자막 폰트 선택",
-        options=font_ids,
-        format_func=lambda fid: next((f["title"] for f in AVAILABLE_FONTS if f["id"] == fid), fid),
-        index=cur_idx,
-        key="sidebar_font_select",
-        on_change=on_sidebar_font_change,
-        label_visibility="collapsed",
-    )
-    st.session_state.selected_font = selected_font
-
-    target_duration = st.slider("목표 영상 길이(초)", min_value=15, max_value=45, value=25, step=5)
-    st.caption(f"목표 러닝타임: **{target_duration}초**")
-
-    use_zoom = st.checkbox("다이내믹 줌 트랜지션", value=True)
-    use_bgm = st.checkbox("배경음악 자동 믹싱", value=True)
-
-    st.markdown('<div style="font-weight:700; font-size:0.85rem; color:#5E5548; margin-top:0.75rem; margin-bottom:0.25rem;">AI 음성 더빙 설정</div>', unsafe_allow_html=True)
-    if "use_tts" not in st.session_state:
-        st.session_state.use_tts = True
-    if "selected_voice_preset" not in st.session_state:
-        st.session_state.selected_voice_preset = "선희 (발랄한 숏폼)"
-
-    use_tts = st.checkbox("AI 내레이션 더빙 사용", value=st.session_state.use_tts, key="sb_use_tts")
-    st.session_state.use_tts = use_tts
-
-    voice_preset_list = list(editor.VOICE_PRESETS.keys())
-    sb_cur_voice = st.session_state.selected_voice_preset
-    sb_cur_idx = voice_preset_list.index(sb_cur_voice) if sb_cur_voice in voice_preset_list else 0
-
-    if use_tts:
-        def on_sb_voice_change():
-            st.session_state.selected_voice_preset = st.session_state.sb_voice_select
-
-        selected_voice_label = st.selectbox(
-            "더빙 목소리 선택",
-            options=voice_preset_list,
-            index=sb_cur_idx,
-            key="sb_voice_select",
-            on_change=on_sb_voice_change,
-        )
-        st.session_state.selected_voice_preset = selected_voice_label
-
-        if st.button("목소리 미리듣기", key="sb_preview_btn", use_container_width=True):
-            with st.spinner("목소리 합성 중..."):
-                sample_text = "안녕하세요. 지금 보시는 영상의 핵심 포인트를 빠르게 정리해 드릴게요."
-                sample_bytes = editor.generate_tts_bytes(sample_text, voice_preset=selected_voice_label)
-                if sample_bytes:
-                    st.audio(sample_bytes, format="audio/mp3")
-
-    generate_sns = st.checkbox("SNS 텍스트 패키지 생성", value=True)
-
-    st.divider()
-    if st.button("작업 초기화", use_container_width=True):
-        reset_to_home()
+# 제작 환경 기본값 세션 초기화 (단일 기준 관리)
+if "target_duration" not in st.session_state:
+    st.session_state.target_duration = 25
+if "use_zoom" not in st.session_state:
+    st.session_state.use_zoom = True
+if "use_bgm" not in st.session_state:
+    st.session_state.use_bgm = True
+if "generate_sns" not in st.session_state:
+    st.session_state.generate_sns = True
+if "use_tts" not in st.session_state:
+    st.session_state.use_tts = True
+if "selected_voice_preset" not in st.session_state:
+    st.session_state.selected_voice_preset = "선희 (발랄한 숏폼)"
+if "selected_font" not in st.session_state:
+    st.session_state.selected_font = "Bithumb Gothic Basic"
 
 
 # ==========================================
@@ -714,6 +671,43 @@ if st.session_state.page == "upload":
 
     st.markdown("<div style='margin-bottom:0.6rem;'></div>", unsafe_allow_html=True)
 
+    # 제작 및 연출 세부 옵션 카드
+    st.markdown(
+        """
+        <div style="margin-top:0.4rem; margin-bottom:0.25rem;">
+            <div style="font-size:0.82rem; font-weight:700; color:#2E3230; display:flex; align-items:center; gap:0.3rem;">
+                <span class="material-symbols-outlined" style="font-size:18px; color:#4A7C59;">tune</span>
+                <span>제작 및 연출 옵션</span>
+            </div>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+
+    st.markdown('<div class="stitch-card" style="padding:0.85rem 1rem; margin-bottom:0.85rem;">', unsafe_allow_html=True)
+    target_duration = st.slider(
+        "목표 영상 길이(초)",
+        min_value=15,
+        max_value=45,
+        value=int(st.session_state.get("target_duration", 25)),
+        step=5,
+        key="main_target_dur_slider",
+    )
+    st.session_state.target_duration = target_duration
+    st.caption(f"목표 러닝타임: **{target_duration}초**")
+
+    col_opt1, col_opt2, col_opt3 = st.columns(3)
+    with col_opt1:
+        use_zoom = st.checkbox("다이내믹 줌 트랜지션", value=st.session_state.get("use_zoom", True), key="main_use_zoom")
+        st.session_state.use_zoom = use_zoom
+    with col_opt2:
+        use_bgm = st.checkbox("배경음악 자동 믹싱", value=st.session_state.get("use_bgm", True), key="main_use_bgm")
+        st.session_state.use_bgm = use_bgm
+    with col_opt3:
+        generate_sns = st.checkbox("SNS 텍스트 패키지 생성", value=st.session_state.get("generate_sns", True), key="main_generate_sns")
+        st.session_state.generate_sns = generate_sns
+    st.markdown('</div>', unsafe_allow_html=True)
+
     # 액션 버튼
     analyze_btn = st.button("AI 분석 및 쇼츠 세그먼트 추출", type="primary", use_container_width=True)
 
@@ -731,7 +725,7 @@ if st.session_state.page == "upload":
                 with st.spinner("AI 감독관이 영상을 분석하고 하이라이트 타임라인을 기획 중입니다..."):
                     new_timeline = director.generate_timeline_from_videos(
                         existing_videos,
-                        target_duration=float(target_duration),
+                        target_duration=float(st.session_state.target_duration),
                         user_prompt=user_intent,
                         progress_callback=cb,
                     )
@@ -1015,9 +1009,9 @@ elif st.session_state.page in ["analysis", "editor"]:
                         thumbnail_path=SESSION_THUMBNAIL_FILE,
                         input_dir=SESSION_INPUTS_DIR,
                         temp_dir=SESSION_TEMP_DIR,
-                        selected_font=st.session_state.get("selected_font", selected_font),
-                        use_zoom=use_zoom,
-                        use_bgm=use_bgm,
+                        selected_font=st.session_state.get("selected_font", "Bithumb Gothic Basic"),
+                        use_zoom=st.session_state.get("use_zoom", True),
+                        use_bgm=st.session_state.get("use_bgm", True),
                         use_tts=active_use_tts,
                         tts_voice=active_voice,
                         tts_speed=1.0,
@@ -1033,7 +1027,7 @@ elif st.session_state.page in ["analysis", "editor"]:
                         st.session_state.thumb_bytes = io.BytesIO(SESSION_THUMBNAIL_FILE.read_bytes())
                         st.session_state.thumb_kb = SESSION_THUMBNAIL_FILE.stat().st_size / 1024
 
-                    if generate_sns:
+                    if st.session_state.get("generate_sns", True):
                         try:
                             sns_data = director.generate_sns_package(
                                 timeline_data,
