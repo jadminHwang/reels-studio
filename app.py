@@ -19,9 +19,10 @@ if sys.platform == "win32":
 import director
 import editor
 
-# 필수 백그라운드 의존성(edge-tts) 자동 무결성 점검
+# 필수 백그라운드 의존성(edge-tts, gTTS) 자동 무결성 점검
 try:
     editor.ensure_edge_tts()
+    editor.ensure_gtts()
 except Exception:
     pass
 
@@ -517,39 +518,38 @@ with st.sidebar:
     use_zoom = st.checkbox("다이내믹 줌 트랜지션", value=True)
     use_bgm = st.checkbox("배경음악 자동 믹싱", value=True)
 
-    st.markdown('<div style="font-weight:700; font-size:0.85rem; color:#5E5548; margin-top:0.75rem; margin-bottom:0.25rem;">AI 음성 더빙 & 오디오</div>', unsafe_allow_html=True)
-    use_tts = st.checkbox("AI 내레이션 더빙 사용", value=True)
+    st.markdown('<div style="font-weight:700; font-size:0.85rem; color:#5E5548; margin-top:0.75rem; margin-bottom:0.25rem;">AI 음성 더빙 설정</div>', unsafe_allow_html=True)
+    if "use_tts" not in st.session_state:
+        st.session_state.use_tts = True
+    if "selected_voice_preset" not in st.session_state:
+        st.session_state.selected_voice_preset = "선희 (발랄한 숏폼)"
+
+    use_tts = st.checkbox("AI 내레이션 더빙 사용", value=st.session_state.use_tts, key="sb_use_tts")
+    st.session_state.use_tts = use_tts
+
+    voice_preset_list = list(editor.VOICE_PRESETS.keys())
+    sb_cur_voice = st.session_state.selected_voice_preset
+    sb_cur_idx = voice_preset_list.index(sb_cur_voice) if sb_cur_voice in voice_preset_list else 0
 
     if use_tts:
-        voice_labels = list(editor.VOICE_PRESETS.keys())
+        def on_sb_voice_change():
+            st.session_state.selected_voice_preset = st.session_state.sb_voice_select
+
         selected_voice_label = st.selectbox(
             "더빙 목소리 선택",
-            options=voice_labels,
-            index=0,
-            help="완전 무료 고품질 한국어 뉴럴 보이스 (Edge-TTS)",
+            options=voice_preset_list,
+            index=sb_cur_idx,
+            key="sb_voice_select",
+            on_change=on_sb_voice_change,
         )
-        selected_voice_id = editor.VOICE_PRESETS[selected_voice_label]
+        st.session_state.selected_voice_preset = selected_voice_label
 
-        tts_speed = st.slider(
-            "음성 속도",
-            min_value=0.8,
-            max_value=1.5,
-            value=1.15,
-            step=0.05,
-            format="%.2fx",
-            help="숏폼의 빠른 템포와 리듬감에 맞는 1.1x ~ 1.2x 속도를 추천합니다.",
-        )
-
-        # 보이스 실시간 미리듣기 위젯
-        if st.button("목소리 미리듣기", use_container_width=True):
-            with st.spinner("AI 목소리 합성 중..."):
-                sample_text = "안녕하세요! 오늘의 초간단 레시피를 시작합니다."
-                sample_bytes = editor.generate_tts_bytes(sample_text, voice=selected_voice_id, speed=tts_speed)
+        if st.button("목소리 미리듣기", key="sb_preview_btn", use_container_width=True):
+            with st.spinner("목소리 합성 중..."):
+                sample_text = "안녕하세요. 지금 보시는 영상의 핵심 포인트를 빠르게 정리해 드릴게요."
+                sample_bytes = editor.generate_tts_bytes(sample_text, voice_preset=selected_voice_label)
                 if sample_bytes:
                     st.audio(sample_bytes, format="audio/mp3")
-    else:
-        selected_voice_id = "ko-KR-SunHiNeural"
-        tts_speed = 1.15
 
     generate_sns = st.checkbox("SNS 텍스트 패키지 생성", value=True)
 
@@ -671,6 +671,48 @@ if st.session_state.page == "upload":
         f'</div>'
     )
     st.markdown(preview_box_html, unsafe_allow_html=True)
+
+    # AI 내레이션 목소리 드롭다운 선택 및 실시간 미리듣기
+    st.markdown(
+        """
+        <div style="margin-top:0.4rem; margin-bottom:0.25rem;">
+            <div style="font-size:0.82rem; font-weight:700; color:#2E3230; display:flex; align-items:center; gap:0.3rem;">
+                <span class="material-symbols-outlined" style="font-size:18px; color:#4A7C59;">record_voice_over</span>
+                <span>AI 내레이션 목소리 선택</span>
+            </div>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+
+    upload_voice_list = list(editor.VOICE_PRESETS.keys())
+    upload_cur_v = st.session_state.get("selected_voice_preset", upload_voice_list[0])
+    upload_cur_idx = upload_voice_list.index(upload_cur_v) if upload_cur_v in upload_voice_list else 0
+
+    def on_upload_voice_change():
+        st.session_state.selected_voice_preset = st.session_state.upload_voice_select
+
+    upload_chosen_voice = st.selectbox(
+        "AI 내레이션 목소리 선택",
+        options=upload_voice_list,
+        index=upload_cur_idx,
+        key="upload_voice_select",
+        on_change=on_upload_voice_change,
+        label_visibility="collapsed",
+    )
+    st.session_state.selected_voice_preset = upload_chosen_voice
+
+    up_preset_info = editor.VOICE_PRESETS.get(upload_chosen_voice, {})
+    st.caption(f"{up_preset_info.get('description', '')} (피치: {up_preset_info.get('pitch', '+0Hz')}, 속도: {up_preset_info.get('rate', '+0%')})")
+
+    if st.button("목소리 미리듣기", key="upload_preview_btn", use_container_width=True):
+        with st.spinner("목소리 합성 중..."):
+            sample_text = "안녕하세요. 지금 보시는 영상의 핵심 포인트를 빠르게 정리해 드릴게요."
+            sample_bytes = editor.generate_tts_bytes(sample_text, voice_preset=upload_chosen_voice)
+            if sample_bytes:
+                st.audio(sample_bytes, format="audio/mp3")
+
+    st.markdown("<div style='margin-bottom:0.6rem;'></div>", unsafe_allow_html=True)
 
     # 액션 버튼
     analyze_btn = st.button("AI 분석 및 쇼츠 세그먼트 추출", type="primary", use_container_width=True)
@@ -880,7 +922,60 @@ elif st.session_state.page in ["analysis", "editor"]:
             unsafe_allow_html=True,
         )
 
-        # 4. 스티치 하단 고정 변환 바 (선택 클립 총 N개 | N초 분량 + 원클릭 쇼츠 편집기로 전달 & 렌더링)
+        # 4. AI 음성 더빙 및 캐릭터 보이스 선택 카드
+        st.markdown(
+            """
+            <div class="stitch-card" style="margin-top:0.85rem; padding:0.95rem 1rem;">
+                <div style="font-weight:700; font-size:0.92rem; color:#2E3230; margin-bottom:0.2rem;">
+                    AI 내레이션 더빙 선택
+                </div>
+                <div style="font-size:0.75rem; color:#6B6358; margin-bottom:0.5rem;">
+                    각 컷 자막을 캐릭터 보이스로 자동 합성하고 오디오 덕킹을 적용합니다.
+                </div>
+            </div>
+            """,
+            unsafe_allow_html=True,
+        )
+
+        use_tts_editor = st.checkbox(
+            "AI 내레이션 음성 더빙 적용",
+            value=st.session_state.get("use_tts", True),
+            key="editor_use_tts",
+        )
+        st.session_state.use_tts = use_tts_editor
+
+        voice_options = list(editor.VOICE_PRESETS.keys())
+        cur_v = st.session_state.get("selected_voice_preset", voice_options[0])
+        cur_v_idx = voice_options.index(cur_v) if cur_v in voice_options else 0
+
+        if use_tts_editor:
+            def on_editor_voice_change():
+                st.session_state.selected_voice_preset = st.session_state.editor_voice_select
+
+            chosen_voice = st.selectbox(
+                "더빙 목소리 선택",
+                options=voice_options,
+                index=cur_v_idx,
+                key="editor_voice_select",
+                on_change=on_editor_voice_change,
+            )
+            st.session_state.selected_voice_preset = chosen_voice
+
+            preset_info = editor.VOICE_PRESETS.get(chosen_voice, {})
+            p_desc = preset_info.get("description", "")
+            p_pitch = preset_info.get("pitch", "+0Hz")
+            p_rate = preset_info.get("rate", "+0%")
+            st.caption(f"{p_desc} (피치: {p_pitch}, 속도: {p_rate})")
+
+            # 드롭다운 바로 밑 [목소리 미리듣기] 버튼
+            if st.button("목소리 미리듣기", key="editor_preview_btn", use_container_width=True):
+                with st.spinner("목소리 합성 중..."):
+                    sample_text = "안녕하세요. 지금 보시는 영상의 핵심 포인트를 빠르게 정리해 드릴게요."
+                    sample_bytes = editor.generate_tts_bytes(sample_text, voice_preset=chosen_voice)
+                    if sample_bytes:
+                        st.audio(sample_bytes, format="audio/mp3")
+
+        # 5. 스티치 하단 고정 변환 바 (선택 클립 총 N개 | N초 분량 + 원클릭 쇼츠 편집기로 전달 & 렌더링)
         st.markdown(
             f"""
             <div class="stitch-card" style="margin-top:0.75rem; padding:0.85rem 1rem;">
@@ -910,6 +1005,9 @@ elif st.session_state.page in ["analysis", "editor"]:
                 r_prog.progress(float(progress))
 
             try:
+                active_voice = st.session_state.get("selected_voice_preset", "선희 (발랄한 숏폼)")
+                active_use_tts = st.session_state.get("use_tts", True)
+
                 with st.spinner("FFmpeg 9:16 인코딩 및 고화질 썸네일 추출 중..."):
                     rendered_path = editor.render_reels(
                         timeline_data,
@@ -920,9 +1018,9 @@ elif st.session_state.page in ["analysis", "editor"]:
                         selected_font=st.session_state.get("selected_font", selected_font),
                         use_zoom=use_zoom,
                         use_bgm=use_bgm,
-                        use_tts=use_tts,
-                        tts_voice=selected_voice_id,
-                        tts_speed=tts_speed,
+                        use_tts=active_use_tts,
+                        tts_voice=active_voice,
+                        tts_speed=1.0,
                         progress_callback=r_cb,
                     )
 

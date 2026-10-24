@@ -93,6 +93,79 @@ def clean_text_for_tts(text: str) -> str:
     return cleaned
 
 
+# ==========================================
+# 3. 보이스 프리셋 (8종 캐릭터 보이스)
+# ==========================================
+VOICE_PRESETS = {
+    "선희 (발랄한 숏폼)": {
+        "engine": "edge-tts",
+        "voice": "ko-KR-SunHiNeural",
+        "pitch": "+5Hz",
+        "rate": "+15%",
+        "description": "생동감 있고 빠른 템포의 추천 보이스",
+    },
+    "선희 (차분한 감성 브이로그)": {
+        "engine": "edge-tts",
+        "voice": "ko-KR-SunHiNeural",
+        "pitch": "-3Hz",
+        "rate": "-5%",
+        "description": "따뜻하고 편안한 느낌의 감성 보이스",
+    },
+    "선희 (하이텐션 톡톡)": {
+        "engine": "edge-tts",
+        "voice": "ko-KR-SunHiNeural",
+        "pitch": "+12Hz",
+        "rate": "+25%",
+        "description": "신나고 통통 튀는 극초반 후킹 보이스",
+    },
+    "인준 (깔끔한 정보 전달)": {
+        "engine": "edge-tts",
+        "voice": "ko-KR-InJoonNeural",
+        "pitch": "+0Hz",
+        "rate": "+10%",
+        "description": "신뢰감 있는 명확한 딕션의 남성 정보 보이스",
+    },
+    "인준 (묵직한 저음 다큐)": {
+        "engine": "edge-tts",
+        "voice": "ko-KR-InJoonNeural",
+        "pitch": "-10Hz",
+        "rate": "-5%",
+        "description": "깊고 진중한 분위기의 시네마틱 저음 보이스",
+    },
+    "인준 (유쾌한 예능 톤)": {
+        "engine": "edge-tts",
+        "voice": "ko-KR-InJoonNeural",
+        "pitch": "+6Hz",
+        "rate": "+20%",
+        "description": "익살스럽고 빠른 전개의 예능 리뷰 보이스",
+    },
+    "에이바 (세련된 트렌디 톤)": {
+        "engine": "edge-tts",
+        "voice": "en-US-AvaMultilingualNeural",
+        "pitch": "+0Hz",
+        "rate": "+10%",
+        "description": "세련된 감각의 트렌디 멀티링구얼 보이스",
+    },
+    "구글 AI 비서 (클래식 톤)": {
+        "engine": "gtts",
+        "lang": "ko",
+        "pitch": "+0Hz",
+        "rate": "+0%",
+        "description": "친숙하고 정직한 구글 클래식 TTS 보이스",
+    },
+}
+
+
+def resolve_voice_preset(preset_key_or_voice: str) -> dict:
+    """프리셋 키 또는 음성 식별자를 표준 프리셋 설정 객체로 반환합니다."""
+    if preset_key_or_voice in VOICE_PRESETS:
+        return VOICE_PRESETS[preset_key_or_voice]
+    for name, p in VOICE_PRESETS.items():
+        if p.get("voice") == preset_key_or_voice:
+            return p
+    return VOICE_PRESETS["선희 (발랄한 숏폼)"]
+
+
 def format_edge_tts_rate(speed: float) -> str:
     """배속 숫자를 edge-tts의 rate 문자열(+15%, -10% 등)로 변환합니다."""
     pct = int(round((speed - 1.0) * 100))
@@ -109,12 +182,10 @@ def ensure_edge_tts():
         return edge_tts
     except ImportError:
         import subprocess
-        # 1차 시도: pip 모듈로 설치
         res = subprocess.run([sys.executable, "-m", "pip", "install", "edge-tts"], capture_output=True)
         if res.returncode == 0:
             import edge_tts
             return edge_tts
-        # 2차 시도: ensurepip 후 pip 설치
         subprocess.run([sys.executable, "-m", "ensurepip", "--default-pip"], capture_output=True)
         res2 = subprocess.run([sys.executable, "-m", "pip", "install", "edge-tts"], capture_output=True)
         if res2.returncode == 0:
@@ -123,15 +194,59 @@ def ensure_edge_tts():
         raise RuntimeError("edge-tts 패키지를 자동으로 설치할 수 없습니다. 터미널에서 'pip install edge-tts'를 실행해 주세요.")
 
 
-async def generate_tts_bytes_async(text: str, voice: str = "ko-KR-SunHiNeural", speed: float = 1.15) -> bytes:
-    """edge-tts를 비동기로 호출하여 오디오 바이트(mp3)를 메모리에 버퍼링합니다."""
-    edge_tts = ensure_edge_tts()
+def ensure_gtts():
+    """gTTS 패키지가 설치되어 있는지 확인하고 없으면 자동 설치합니다."""
+    try:
+        from gtts import gTTS
+        return gTTS
+    except ImportError:
+        import subprocess
+        res = subprocess.run([sys.executable, "-m", "pip", "install", "gTTS"], capture_output=True)
+        if res.returncode == 0:
+            from gtts import gTTS
+            return gTTS
+        subprocess.run([sys.executable, "-m", "ensurepip", "--default-pip"], capture_output=True)
+        res2 = subprocess.run([sys.executable, "-m", "pip", "install", "gTTS"], capture_output=True)
+        if res2.returncode == 0:
+            from gtts import gTTS
+            return gTTS
+        raise RuntimeError("gTTS 패키지를 자동으로 설치할 수 없습니다. 터미널에서 'pip install gTTS'를 실행해 주세요.")
 
-    rate_str = format_edge_tts_rate(speed)
+
+async def generate_tts_bytes_async(
+    text: str,
+    voice_preset: str = "선희 (발랄한 숏폼)",
+    pitch: Optional[str] = None,
+    rate: Optional[str] = None,
+    speed: Optional[float] = None,
+) -> bytes:
+    """선택된 보이스 프리셋의 피치와 배속을 적용하여 비동기로 오디오 바이트(mp3)를 생성합니다."""
+    cfg = resolve_voice_preset(voice_preset)
+    engine = cfg.get("engine", "edge-tts")
     cleaned = clean_text_for_tts(text)
     if not cleaned:
         cleaned = " "
-    communicate = edge_tts.Communicate(cleaned, voice, rate=rate_str)
+
+    if engine == "gtts":
+        gTTS_cls = ensure_gtts()
+        fp = io.BytesIO()
+        tts_obj = gTTS_cls(text=cleaned, lang=cfg.get("lang", "ko"))
+        tts_obj.write_to_fp(fp)
+        return fp.getvalue()
+
+    edge_tts = ensure_edge_tts()
+    voice = cfg.get("voice", "ko-KR-SunHiNeural")
+
+    if rate is not None:
+        final_rate = rate
+    elif speed is not None:
+        final_rate = format_edge_tts_rate(speed)
+    else:
+        final_rate = cfg.get("rate", "+0%")
+
+    final_pitch = pitch if pitch is not None else cfg.get("pitch", "+0Hz")
+
+    communicate = edge_tts.Communicate(cleaned, voice, rate=final_rate, pitch=final_pitch)
     buffer = io.BytesIO()
     async for chunk in communicate.stream():
         if chunk["type"] == "audio":
@@ -139,30 +254,46 @@ async def generate_tts_bytes_async(text: str, voice: str = "ko-KR-SunHiNeural", 
     return buffer.getvalue()
 
 
-def generate_tts_bytes(text: str, voice: str = "ko-KR-SunHiNeural", speed: float = 1.15) -> bytes:
+def generate_tts_bytes(
+    text: str,
+    voice: Optional[str] = None,
+    speed: Optional[float] = None,
+    voice_preset: Optional[str] = None,
+    pitch: Optional[str] = None,
+    rate: Optional[str] = None,
+) -> bytes:
     """동기 환경에서 안전하게 TTS 바이트를 생성합니다."""
+    target_preset = voice_preset or voice or "선희 (발랄한 숏폼)"
+
     try:
         loop = asyncio.get_event_loop()
         if loop.is_running():
-            # 이미 이벤트 루프가 돌아가는 경우(예: Streamlit/Jupyter 내부)
             import nest_asyncio
             nest_asyncio.apply()
-            return loop.run_until_complete(generate_tts_bytes_async(text, voice, speed))
-        return loop.run_until_complete(generate_tts_bytes_async(text, voice, speed))
+            return loop.run_until_complete(
+                generate_tts_bytes_async(text, voice_preset=target_preset, pitch=pitch, rate=rate, speed=speed)
+            )
+        return loop.run_until_complete(
+            generate_tts_bytes_async(text, voice_preset=target_preset, pitch=pitch, rate=rate, speed=speed)
+        )
     except Exception:
-        return asyncio.run(generate_tts_bytes_async(text, voice, speed))
+        return asyncio.run(
+            generate_tts_bytes_async(text, voice_preset=target_preset, pitch=pitch, rate=rate, speed=speed)
+        )
 
 
 def build_tts_master_track(
     cuts: list,
     output_audio_path: Path,
-    voice: str = "ko-KR-SunHiNeural",
-    speed: float = 1.15,
+    voice_preset: str = "선희 (발랄한 숏폼)",
+    pitch: Optional[str] = None,
+    rate: Optional[str] = None,
+    speed: Optional[float] = None,
     ffmpeg_exe: str = "ffmpeg",
     progress_callback: Optional[Callable[[str, float], None]] = None,
 ) -> Optional[Path]:
     """
-    각 컷의 자막을 순서대로 edge-tts로 생성하고,
+    각 컷의 자막을 순서대로 선택된 보이스 프리셋으로 생성하고,
     컷별 시작 타임코드에 맞춰 지연(adelay)을 적용한 단일 마스터 TTS 오디오 트랙을 생성합니다.
     """
     temp_dir = output_audio_path.parent / "temp_tts"
@@ -178,9 +309,15 @@ def build_tts_master_track(
 
         if cleaned_cap and len(cleaned_cap) > 0:
             if progress_callback:
-                progress_callback(f"🎙️ AI 음성 합성 중 (컷 {idx}/{len(cuts)}): '{cleaned_cap[:12]}...'", 0.0)
+                progress_callback(f"AI 음성 합성 중 (컷 {idx}/{len(cuts)}): '{cleaned_cap[:12]}...'", 0.0)
 
-            raw_audio = generate_tts_bytes(cleaned_cap, voice=voice, speed=speed)
+            raw_audio = generate_tts_bytes(
+                cleaned_cap,
+                voice_preset=voice_preset,
+                pitch=pitch,
+                rate=rate,
+                speed=speed,
+            )
             if raw_audio and len(raw_audio) > 0:
                 clip_file = temp_dir / f"tts_{idx:03d}.mp3"
                 clip_file.write_bytes(raw_audio)
@@ -192,7 +329,6 @@ def build_tts_master_track(
         shutil.rmtree(temp_dir, ignore_errors=True)
         return None
 
-    # FFmpeg adelay 및 amix 필터를 통해 단일 마스터 트랙 생성
     inputs_cmd = []
     filter_parts = []
     mix_labels = []
@@ -589,13 +725,13 @@ def render_reels(
     # 3-2. AI 음성 더빙(TTS) 및 스마트 오디오 덕킹(Audio Ducking)
     if use_tts:
         if progress_callback:
-            progress_callback("🎙️ AI 내레이션 더빙 생성 및 스마트 오디오 덕킹 믹싱 중...", (total_cuts + 1.8) / (total_cuts + 3))
+            progress_callback("AI 내레이션 더빙 생성 및 스마트 오디오 덕킹 믹싱 중...", (total_cuts + 1.8) / (total_cuts + 3))
 
         tts_master_path = temp_dir / "tts_master.aac"
         tts_built = build_tts_master_track(
             cuts,
             tts_master_path,
-            voice=tts_voice,
+            voice_preset=tts_voice,
             speed=tts_speed,
             ffmpeg_exe=ffmpeg_exe,
             progress_callback=progress_callback,
