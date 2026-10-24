@@ -45,7 +45,7 @@ SNS_PACKAGE_FILE = OUTPUTS_DIR / "sns_package.json"
 # 2. 페이지 설정 & 세션 상태 초기화
 # ==========================================
 st.set_page_config(
-    page_title="LUMEN.AI | Reels Studio",
+    page_title="메바초이 | Reels Studio",
     page_icon="✨",
     layout="wide",
     initial_sidebar_state="collapsed",
@@ -266,7 +266,7 @@ header_html = f"""
             <span class="material-symbols-outlined" style="font-size:22px;">auto_awesome</span>
         </div>
         <div>
-            <div style="font-weight:800; font-size:1.05rem; letter-spacing:0.04em; color:#2E3230; line-height:1.2;">LUMEN.AI <span style="font-weight:500; font-size:0.8rem; color:#5E5548;">REELS STUDIO</span></div>
+            <div style="font-weight:800; font-size:1.15rem; letter-spacing:0.02em; color:#2E3230; line-height:1.2;">메바초이 <span style="font-weight:600; font-size:0.8rem; color:#5E5548;">REELS STUDIO</span></div>
             <div style="font-size:0.75rem; color:#6B6358; font-weight:500;">모바일 숏폼 자동 컷편집 & 바이럴 자막</div>
         </div>
     </div>
