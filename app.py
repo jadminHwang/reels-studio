@@ -629,45 +629,55 @@ if st.session_state.page == "upload":
     )
     st.markdown(preview_box_html, unsafe_allow_html=True)
 
-    # AI 내레이션 목소리 드롭다운 선택 및 실시간 미리듣기
+    # AI 내레이션 활성화/비활성화 및 목소리 선택
     st.markdown(
         """
-        <div style="margin-top:0.4rem; margin-bottom:0.25rem;">
+        <div style="margin-top:0.6rem; margin-bottom:0.25rem;">
             <div style="font-size:0.82rem; font-weight:700; color:#2E3230; display:flex; align-items:center; gap:0.3rem;">
                 <span class="material-symbols-outlined" style="font-size:18px; color:#4A7C59;">record_voice_over</span>
-                <span>AI 내레이션 목소리 선택</span>
+                <span>AI 내레이션 음성 더빙</span>
             </div>
         </div>
         """,
         unsafe_allow_html=True,
     )
 
-    upload_voice_list = list(editor.VOICE_PRESETS.keys())
-    upload_cur_v = st.session_state.get("selected_voice_preset", upload_voice_list[0])
-    upload_cur_idx = upload_voice_list.index(upload_cur_v) if upload_cur_v in upload_voice_list else 0
-
-    def on_upload_voice_change():
-        st.session_state.selected_voice_preset = st.session_state.upload_voice_select
-
-    upload_chosen_voice = st.selectbox(
-        "AI 내레이션 목소리 선택",
-        options=upload_voice_list,
-        index=upload_cur_idx,
-        key="upload_voice_select",
-        on_change=on_upload_voice_change,
-        label_visibility="collapsed",
+    use_tts_upload = st.checkbox(
+        "AI 내레이션 생성하기 (체크 해제 시 음성 없이 제작)",
+        value=st.session_state.get("use_tts", True),
+        key="upload_use_tts_toggle",
     )
-    st.session_state.selected_voice_preset = upload_chosen_voice
+    st.session_state.use_tts = use_tts_upload
 
-    up_preset_info = editor.VOICE_PRESETS.get(upload_chosen_voice, {})
-    st.caption(f"{up_preset_info.get('description', '')} (피치: {up_preset_info.get('pitch', '+0Hz')}, 속도: {up_preset_info.get('rate', '+0%')})")
+    if use_tts_upload:
+        upload_voice_list = list(editor.VOICE_PRESETS.keys())
+        upload_cur_v = st.session_state.get("selected_voice_preset", upload_voice_list[0])
+        upload_cur_idx = upload_voice_list.index(upload_cur_v) if upload_cur_v in upload_voice_list else 0
 
-    if st.button("목소리 미리듣기", key="upload_preview_btn", use_container_width=True):
-        with st.spinner("목소리 합성 중..."):
-            sample_text = "안녕하세요. 지금 보시는 영상의 핵심 포인트를 빠르게 정리해 드릴게요."
-            sample_bytes = editor.generate_tts_bytes(sample_text, voice_preset=upload_chosen_voice)
-            if sample_bytes:
-                st.audio(sample_bytes, format="audio/mp3")
+        def on_upload_voice_change():
+            st.session_state.selected_voice_preset = st.session_state.upload_voice_select
+
+        upload_chosen_voice = st.selectbox(
+            "AI 내레이션 목소리 선택",
+            options=upload_voice_list,
+            index=upload_cur_idx,
+            key="upload_voice_select",
+            on_change=on_upload_voice_change,
+            label_visibility="collapsed",
+        )
+        st.session_state.selected_voice_preset = upload_chosen_voice
+
+        up_preset_info = editor.VOICE_PRESETS.get(upload_chosen_voice, {})
+        st.caption(f"{up_preset_info.get('description', '')} (피치: {up_preset_info.get('pitch', '+0Hz')}, 속도: {up_preset_info.get('rate', '+0%')})")
+
+        if st.button("목소리 미리듣기", key="upload_preview_btn", use_container_width=True):
+            with st.spinner("목소리 합성 중..."):
+                sample_text = "안녕하세요. 지금 보시는 영상의 핵심 포인트를 빠르게 정리해 드릴게요."
+                sample_bytes = editor.generate_tts_bytes(sample_text, voice_preset=upload_chosen_voice)
+                if sample_bytes:
+                    st.audio(sample_bytes, format="audio/mp3")
+    else:
+        st.caption("AI 음성 더빙 없이 원본 현장음과 배경음악만으로 릴스를 제작합니다.")
 
     st.markdown("<div style='margin-bottom:0.6rem;'></div>", unsafe_allow_html=True)
 
@@ -932,7 +942,7 @@ elif st.session_state.page in ["analysis", "editor"]:
         )
 
         use_tts_editor = st.checkbox(
-            "AI 내레이션 음성 더빙 적용",
+            "AI 내레이션 생성하기 (체크 해제 시 음성 없이 제작)",
             value=st.session_state.get("use_tts", True),
             key="editor_use_tts",
         )
@@ -968,6 +978,8 @@ elif st.session_state.page in ["analysis", "editor"]:
                     sample_bytes = editor.generate_tts_bytes(sample_text, voice_preset=chosen_voice)
                     if sample_bytes:
                         st.audio(sample_bytes, format="audio/mp3")
+        else:
+            st.caption("AI 음성 더빙 없이 원본 영상 사운드와 배경음악만으로 렌더링됩니다.")
 
         # 5. 스티치 하단 고정 변환 바 (선택 클립 총 N개 | N초 분량 + 원클릭 쇼츠 편집기로 전달 & 렌더링)
         st.markdown(
