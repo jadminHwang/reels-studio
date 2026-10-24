@@ -22,22 +22,29 @@ load_dotenv()
 # ==========================================
 # 1. 숏폼 기획안 구조화 스키마 정의 (Pydantic)
 # ==========================================
-class ClipCut(BaseModel):
-    clip_index: int = Field(description="편집 시퀀스 순서 (1부터 시작하는 순번)", ge=1)
-    file_name: str = Field(description="해당 컷이 포함된 원본 영상 파일명 (예: '8.mp4')")
-    start: str = Field(description="선정된 구간의 시작 타임스탬프 (예: '00:01' 또는 '00:01.5')")
-    end: str = Field(description="선정된 구간의 종료 타임스탬프 (예: '00:03' 또는 '00:03.0')")
-    duration_seconds: float = Field(description="해당 컷의 길이(초 단위, 1.5~2.5초 권장)")
-    caption: str = Field(description="10자 내외의 직관적이고 임팩트 있는 강조형 숏폼 자막 (한국어)")
-    reason: str = Field(description="이 장면을 이 타이밍에 배치한 연출/알고리즘적 이유")
+class OpeningHook(BaseModel):
+    line1_highlight: str = Field(description="4~6글자 이내의 극도로 임팩트 있는 노란색 키워드 (예: '호두 쏟아부은!')")
+    line2_sub: str = Field(description="시청자의 궁금증을 자극하는 흰색 질문 카피 (예: '카페 사장님 비밀 레시피?')")
 
 
-class ReelsPlan(BaseModel):
-    title: str = Field(description="조회수를 부르는 매력적인 후킹형 릴스 제목")
-    concept: str = Field(description="알고리즘 떡상을 위한 시청 지속 시간 극대화 연출 콘셉트")
-    total_duration_seconds: float = Field(description="전체 편집 완성본의 총 길이 (초 단위)")
-    bgm_vibe: str = Field(description="영상에 어울리는 트렌디하고 비트감 있는 배경음악(BGM) 추천")
-    cuts: List[ClipCut] = Field(description="오프닝 훅부터 결말까지 재배치된 최종 컷 목록")
+class ShortCut(BaseModel):
+    cut_index: int = Field(description="컷 순번 (1부터 시작하는 순번)", ge=1)
+    source_file: str = Field(description="해당 컷이 포함된 원본 영상 파일명 (예: '8.mp4')")
+    start_time: str = Field(description="구간 시작 타임스탬프 (예: '00:02.00')")
+    end_time: str = Field(description="구간 종료 타임스탬프 (예: '00:04.00')")
+    duration: float = Field(description="해당 컷의 길이(초 단위, 1.2~2.5초 권장)")
+    caption: str = Field(description="자막 문구 (1번 컷은 2줄 카피, 중간 컷은 4~8글자의 직관적 단어형 문구)")
+    zoom_in: bool = Field(description="디테일/질감/손동작 강조를 위한 줌인 트랜지션 여부 (True/False)", default=False)
+    action_role: str = Field(description="해당 컷의 연출상 역할 및 강조 포인트 (예: '완성작 클로즈업 후킹', '재료 볶는 소리와 질감 강조')")
+
+
+class ShortDirectorPlan(BaseModel):
+    title: str = Field(description="조회수를 부르는 매력적인 숏폼 제목")
+    concept: str = Field(description="감각적인 손동작과 바삭한 질감을 극대화한 고급 숏폼 연출 콘셉트")
+    bgm_vibe: str = Field(description="영상에 어울리는 트렌디하고 세련된 배경음악(BGM) 추천")
+    opening_hook: OpeningHook = Field(description="첫 1~2초 오프닝 훅 (1줄 노란색 키워드 + 2줄 흰색 질문 카피)")
+    ending_cta: str = Field(description="자연스러운 소장/저장 유도 엔딩 문구 (예: '진짜 맛있는 건 나눠 먹어야죠 ✨')")
+    cuts: List[ShortCut] = Field(description="오프닝 훅부터 결말까지 재배치된 최종 컷 목록")
 
 
 class SNSPackage(BaseModel):
@@ -99,7 +106,7 @@ def generate_timeline_from_videos(
     ready_files = upload_and_wait_videos(video_files, client=client, progress_callback=progress_callback)
 
     if progress_callback:
-        progress_callback("🤖 Gemini AI 감독관이 영상들을 종합 분석하고 떡상 타임라인을 기획 중입니다...")
+        progress_callback("감각적인 숏폼 총괄 디렉터 AI가 영상들을 정밀 분석하고 타임라인을 기획 중입니다...")
 
     contents = []
     for idx, (path, f_obj) in enumerate(ready_files, start=1):
@@ -107,29 +114,35 @@ def generate_timeline_from_videos(
         contents.append(f_obj)
 
     prompt = f"""
-당신은 인스타그램 릴스와 틱톡에서 조회수 1,000만을 터뜨리는 대한민국 최고의 숏폼 떡상 알고리즘 전문 디렉터(PD)입니다.
-제공된 {len(video_files)}개의 영상 클립을 시청자가 1초 만에 스크롤을 멈추고 끝까지 보게 만드는 [알고리즘 떡상형 숏폼/릴스 편집 기획안]으로 완성해 주세요.
+당신은 대한민국 최정상급의 감각적이고 고급스러운 [숏폼 총괄 디렉터]입니다.
+재료의 질감이 살아나는 매크로 샷, 정교한 손동작, 절제된 리듬감, 시각적 쾌감을 최우선 가치로 두고 제공된 {len(video_files)}개의 영상 클립을 분석해 최상의 숏폼 편집 기획안을 완성해 주십시오.
 
-[🔥 알고리즘 떡상 핵심 가이드라인]
-1. 🚨 [0~2초 오프닝 훅(Hooking) 강제 배치]
-   - 절대로 시작부터 순서대로 보여주지 마십시오!
-   - 전체 영상 중 가장 시각적 자극이 강하고 군침 도는 하이라이트/완성 장면을 맨 첫 컷(1.5초~2.5초)으로 파격 배치하십시오.
-   - 1번째 컷의 자막(caption)은 반드시 **2줄 구조**로 작성하십시오!
-     1번째 줄: 강렬한 핵심 키워드 (예: "호두 쏟아부은 미친 고소함!")
-     2번째 줄: 호기심을 자극하는 서브 질문 카피 (예: "카페 사장님 비밀 레시피?")
-     줄바꿈은 반드시 줄바꿈 문자(\\n)로 구분해 주세요.
+[🎬 숏폼 총괄 디렉터 연출 원칙]
+1. 🚨 첫 1~2초 후킹 (Opening Hook) - 시각적 쾌감 극대화:
+   - 절대로 조리/제작 과정을 순서대로 시작하지 마십시오.
+   - 전체 영상 중 가장 시각적 쾌감이 극대화된 하이라이트(완성작 클로즈업, 자르는 순간의 단면, 쏟아지는 질감 등)를 무조건 맨 첫 컷(1.2초~2.5초)으로 파격 배치하십시오.
+   - 오프닝 훅(opening_hook) 카피:
+     * line1_highlight: 4~6글자 이내의 극도로 임팩트 있는 노란색 강조 키워드 (예: "호두 쏟아부은!", "겉바속촉 미쳤다")
+     * line2_sub: 시청자의 궁금증을 자극하는 흰색 질문 카피 (예: "카페 사장님 비밀 레시피?", "이걸 집에서 만든다고?")
+   - 1번 컷의 caption은 반드시 이 두 문장을 줄바꿈(\\n)으로 연결하여 작성하십시오. (예: "호두 쏟아부은!\\n비밀 레시피?")
 
-2. ⚡ [미친 속도감과 템포 (1.5초 ~ 2.5초)]
-   - 지루할 틈이 없도록 한 컷당 길이를 1.5초 ~ 2.5초로 극단적으로 짧고 리듬감 있게 쪼개십시오.
-   - 전체 총 영상 길이는 약 {target_duration:.1f}초 내외로 완성해 주십시오.
-   - 2번째 컷부터의 과정 자막은 10자 안팎의 직관적이고 임팩트 있는 깔끔한 1줄 카피로 작성하십시오.
+2. ⚡ 중간 컷 자막 (Process) - 설명조 금지, 단어형 문구:
+   - 설명조의 긴 줄글은 절대 금지합니다.
+   - 1줄당 4~8글자 이내로 씹히듯이 직관적인 단어형 문구로 작성하십시오.
+     (예: "노릇하게 볶기", "풍미 끌어올리기", "결대로 썰기", "바삭함 가두기")
 
-3. 🔁 [결말 루프 및 저장/공유 유도]
-   - 마지막 컷(완성/포장 장면)에서는 알고리즘 점수를 극대화하기 위해 저장(Save)과 공유(Share)를 이끌어내는 따뜻하고 직관적인 CTA 자막을 적용하십시오.
-     (예: "진짜 맛있는 건 나눠 먹어야죠 ✨", "📌 레시피 저장하고 선물해 보세요!")
+3. 🔁 엔딩 CTA (Ending Hook) - 자연스러운 소장/저장 유도:
+   - 억지 팔로우 강요는 철저히 배제합니다.
+   - 시청자가 자연스럽게 영상을 저장(Save)하고 공유하고 싶어지도록 따뜻하고 감각적인 문구를 작성하십시오.
+     (예: "진짜 맛있는 건 나눠 먹어야죠 ✨", "주말에 꼭 만들어보세요 📌")
+   - 마지막 완성 컷의 caption에도 이 감성을 자연스럽게 반영하십시오.
 
-4. [타임스탬프 정확도]
-   - 각 컷마다 해당 원본 영상 파일의 정확한 시작(start)과 종료(end) 시간을 추출하고, 왜 이 컷을 이 순서에 배치했는지 명확한 이유(reason)를 적어주십시오.
+4. ⏱️ 컷 길이 및 리듬감:
+   - 총 러닝타임은 {target_duration:.1f}초 내외(20~30초 기준)로 타이트하게 구성하십시오.
+   - 지루한 준비 대기 시간은 과감히 잘라내고, 컷당 길이를 1.2초 ~ 2.5초 내외로 배치하여 속도감과 리듬감을 극대화하십시오.
+
+5. 🔍 줌인 트랜지션 (zoom_in):
+   - 손동작의 정교함, 재료가 볶아지거나 썰리는 질감, 완성작의 클로즈업 디테일이 강조되어야 하는 핵심 컷은 "zoom_in": true 플래그를 부여하십시오.
 """
     contents.append(prompt)
 
@@ -139,12 +152,27 @@ def generate_timeline_from_videos(
             contents=contents,
             config=types.GenerateContentConfig(
                 response_mime_type="application/json",
-                response_schema=ReelsPlan,
+                response_schema=ShortDirectorPlan,
                 temperature=0.7,
             ),
         )
 
         plan_data = json.loads(response.text)
+
+        # 기존 app.py 및 editor.py와의 완전한 하위/상위 호환성 보장
+        total_dur = 0.0
+        for cut in plan_data.get("cuts", []):
+            dur = float(cut.get("duration", 2.0))
+            total_dur += dur
+            cut["duration"] = dur
+            # 기존 레거시 필드 자동 매핑
+            cut["file_name"] = cut.get("source_file", "")
+            cut["start"] = cut.get("start_time", "00:00")
+            cut["end"] = cut.get("end_time", "00:00")
+            cut["duration_seconds"] = dur
+            cut["reason"] = cut.get("action_role", "")
+
+        plan_data["total_duration_seconds"] = round(total_dur, 2)
         return plan_data
 
     finally:

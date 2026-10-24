@@ -201,7 +201,7 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
     current_time = 0.0
 
     for idx, cut in enumerate(cuts, start=1):
-        dur = float(cut.get("duration_seconds", 2.0))
+        dur = float(cut.get("duration", cut.get("duration_seconds", 2.0)))
         start_ass = format_ass_time(current_time)
         end_ass = format_ass_time(current_time + dur)
         raw_caption = cut.get("caption", "").strip()
@@ -309,7 +309,7 @@ def render_reels(
         if progress_callback:
             progress_callback(f"[{idx}/{total_cuts}] 클립 컷팅 및 9:16 규격 변환 중: {cut.get('caption', '')}", (idx / (total_cuts + 3)))
 
-        file_name = cut["file_name"]
+        file_name = cut.get("source_file") or cut.get("file_name", "")
         input_video = input_dir / file_name
 
         if not input_video.exists():
@@ -319,17 +319,20 @@ def render_reels(
             else:
                 raise FileNotFoundError(f"입력 비디오 파일을 찾을 수 없습니다: {input_video}")
 
-        start_sec = parse_timestamp_to_seconds(cut["start"])
-        end_sec = parse_timestamp_to_seconds(cut["end"])
+        start_str = cut.get("start_time") or cut.get("start", "00:00")
+        end_str = cut.get("end_time") or cut.get("end", "00:00")
+        start_sec = parse_timestamp_to_seconds(start_str)
+        end_sec = parse_timestamp_to_seconds(end_str)
         duration = end_sec - start_sec
         if duration <= 0:
-            duration = float(cut.get("duration_seconds", 2.0))
+            duration = float(cut.get("duration") or cut.get("duration_seconds", 2.0))
 
         out_clip = temp_dir / f"clip_{idx:03d}.mp4"
 
-        # 기본 9:16 센터 크롭 필터
-        if use_zoom:
-            # 다이내믹 줌 트랜지션 (시작 0.2초간 부드러운 줌인 효과)
+        # 컷별 줌인 플래그(zoom_in) 또는 글로벌 use_zoom 적용
+        cut_zoom = bool(cut.get("zoom_in", False)) or use_zoom
+        if cut_zoom:
+            # 줌인 트랜지션 (매크로 샷 및 텍스처 강조 필터)
             vf_filter = (
                 "scale=1080:1920:force_original_aspect_ratio=increase,crop=1080:1920,"
                 "setsar=1,fps=30"

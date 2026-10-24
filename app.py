@@ -637,32 +637,35 @@ elif st.session_state.page in ["analysis", "editor"]:
             reset_to_home()
     else:
         cuts_list = timeline_data.get("cuts", [])
-        total_sec = timeline_data.get("total_duration_seconds", sum(float(c.get("duration_seconds", 2.0)) for c in cuts_list))
+        total_sec = float(timeline_data.get("total_duration_seconds", sum(float(c.get("duration", c.get("duration_seconds", 2.0))) for c in cuts_list)))
+        title_text = timeline_data.get("title", "스마트 숏폼 릴스")
+        concept_text = timeline_data.get("concept", "감각적인 연출 콘셉트")
+        bgm_vibe = timeline_data.get("bgm_vibe", "")
+        opening_hook = timeline_data.get("opening_hook", {})
+        ending_cta = timeline_data.get("ending_cta", "")
 
-        # 1. 시청 지속 피크 마커 3개 요약 (스티치 상단 헤더)
+        # 1. 숏폼 총괄 디렉터 연출 기획안 요약 카드
         st.markdown(
             f"""
-            <div style="display:grid; grid-template-columns: repeat(3, 1fr); gap:0.4rem; margin-bottom:0.85rem;">
-                <div style="background:#FFFFFF; padding:0.5rem 0.3rem; border-radius:12px; border:1px solid #E4E0D8; text-align:center;">
-                    <div style="display:flex; align-items:center; justify-content:center; gap:0.25rem;">
-                        <span style="width:6px; height:6px; border-radius:50%; background:#4A7C59;"></span>
-                        <span style="font-size:0.75rem; font-weight:700; color:#2E3230;">00:01</span>
-                    </div>
-                    <div style="font-size:0.7rem; color:#5E5548; font-weight:600; margin-top:2px;">충격적 반전</div>
+            <div class="stitch-card" style="border-left: 4px solid #4A7C59; padding: 1rem 1.15rem; margin-bottom: 0.85rem;">
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:0.35rem;">
+                    <span class="stitch-pill-primary" style="font-size:0.7rem;">DIRECTOR'S CUT</span>
+                    <span style="font-size:0.75rem; font-weight:700; color:#4A7C59;">총 {total_sec:.1f}초 ({len(cuts_list)}개 컷)</span>
                 </div>
-                <div style="background:#FFFFFF; padding:0.5rem 0.3rem; border-radius:12px; border:1px solid #E4E0D8; text-align:center;">
-                    <div style="display:flex; align-items:center; justify-content:center; gap:0.25rem;">
-                        <span style="width:6px; height:6px; border-radius:50%; background:#4A7C59;"></span>
-                        <span style="font-size:0.75rem; font-weight:700; color:#2E3230;">{total_sec*0.5:.0f}s</span>
-                    </div>
-                    <div style="font-size:0.7rem; color:#5E5548; font-weight:600; margin-top:2px;">핵심 노하우 공유</div>
+                <div style="font-family:'Bithumb Gothic Bold', sans-serif; font-size:1.05rem; font-weight:800; color:#2E3230; line-height:1.35; margin-bottom:0.25rem;">
+                    {title_text}
                 </div>
-                <div style="background:#FFFFFF; padding:0.5rem 0.3rem; border-radius:12px; border:1px solid #E4E0D8; text-align:center;">
-                    <div style="display:flex; align-items:center; justify-content:center; gap:0.25rem;">
-                        <span style="width:6px; height:6px; border-radius:50%; background:#705C30;"></span>
-                        <span style="font-size:0.75rem; font-weight:700; color:#2E3230;">{total_sec*0.9:.0f}s</span>
-                    </div>
-                    <div style="font-size:0.7rem; color:#5E5548; font-weight:600; margin-top:2px;">논란의 발언 / CTA</div>
+                <div style="font-size:0.75rem; color:#5E5548; line-height:1.4; margin-bottom:0.6rem;">
+                    {concept_text}
+                </div>
+                {f'''<div style="background:#FAF8F5; border-radius:10px; padding:0.5rem 0.65rem; border:1px solid #EAE5DC; margin-bottom:0.4rem; font-size:0.75rem;">
+                    <span style="color:#705C30; font-weight:700;">첫 1~2초 훅:</span>
+                    <span style="color:#B8860B; font-weight:800; margin-left:0.2rem;">[{opening_hook.get("line1_highlight", "")}]</span>
+                    <span style="color:#2E3230; font-weight:600; margin-left:0.2rem;">{opening_hook.get("line2_sub", "")}</span>
+                </div>''' if opening_hook else ''}
+                <div style="display:flex; justify-content:space-between; align-items:center; font-size:0.72rem; color:#6B6358; padding-top:0.3rem; border-top:1px dashed #EAE5DC;">
+                    <span>🎵 {bgm_vibe if bgm_vibe else '트렌디한 숏폼 BGM'}</span>
+                    <span>✨ {ending_cta if ending_cta else '시청 지속 극대화'}</span>
                 </div>
             </div>
             """,
@@ -677,7 +680,7 @@ elif st.session_state.page in ["analysis", "editor"]:
                     <span class="material-symbols-outlined" style="color:#4A7C59; font-size:18px;">movie_filter</span>
                     <span class="font-headline" style="font-weight:700; font-size:1.05rem; color:#2E3230;">AI 추천 쇼츠 세그먼트</span>
                 </div>
-                <span style="font-size:0.78rem; font-weight:600; color:#5E5548;">{len(cuts_list)} / {len(cuts_list)} 클립 선택됨</span>
+                <span style="font-size:0.78rem; font-weight:600; color:#5E5548;">{len(cuts_list)}개 클립 시퀀스</span>
             </div>
             """,
             unsafe_allow_html=True,
@@ -685,47 +688,65 @@ elif st.session_state.page in ["analysis", "editor"]:
 
         # 컷별 스티치 카드 렌더링
         for idx, cut in enumerate(cuts_list):
-            is_active = (idx == 0)
-            card_class = "stitch-card-active" if is_active else "stitch-card"
-            pill_class = "stitch-pill-primary" if is_active else "stitch-pill-muted"
-            viral_score = max(80, 94 - (idx * 3))
+            is_hook = (idx == 0)
+            card_class = "stitch-card-active" if is_hook else "stitch-card"
+            pill_class = "stitch-pill-primary" if is_hook else "stitch-pill-muted"
+            viral_score = max(82, 96 - (idx * 3))
 
-            dur_s = float(cut.get("duration_seconds", 2.0))
-            file_label = cut.get("file_name", "")
-            start_t = cut.get("start", "00:00")
-            end_t = cut.get("end", "00:00")
+            dur_s = float(cut.get("duration", cut.get("duration_seconds", 2.0)))
+            file_label = cut.get("source_file") or cut.get("file_name", "")
+            start_t = cut.get("start_time") or cut.get("start", "00:00")
+            end_t = cut.get("end_time") or cut.get("end", "00:00")
+            action_role = cut.get("action_role") or cut.get("reason", "알고리즘 유지율 극대화")
+            has_zoom = bool(cut.get("zoom_in", False))
 
             st.markdown(f'<div class="{card_class}">', unsafe_allow_html=True)
-            col_t1, col_t2 = st.columns([3, 1])
+            col_t1, col_t2 = st.columns([3, 1.2])
             with col_t1:
+                zoom_badge = '<span class="stitch-pill-soft" style="font-size:0.68rem; margin-left:0.25rem;">🔍 줌인</span>' if has_zoom else ''
                 st.markdown(
-                    f'<span class="{pill_class}">CLIP 0{idx+1}</span> '
-                    f'<span style="font-size:0.78rem; font-weight:600; color:#5E5548; margin-left:0.35rem;">{start_t} - {end_t} ({dur_s:.0f}s)</span>',
+                    f'<span class="{pill_class}">CUT 0{idx+1}</span>{zoom_badge} '
+                    f'<span style="font-size:0.76rem; font-weight:600; color:#5E5548; margin-left:0.35rem;">{file_label} ({start_t}~{end_t})</span>',
                     unsafe_allow_html=True,
                 )
             with col_t2:
                 st.markdown(
-                    f'<div style="text-align:right;"><span class="stitch-pill-soft" style="font-size:0.7rem;">바이럴 {viral_score}점</span></div>',
+                    f'<div style="text-align:right;"><span class="stitch-pill-soft" style="font-size:0.68rem;">바이럴 {viral_score}점</span></div>',
                     unsafe_allow_html=True,
                 )
 
-            # 자막 카피 입력창
-            current_cap = cut.get("caption", "")
-            updated_cap = st.text_input(
-                f"자막 #{idx+1}",
-                value=current_cap,
-                key=f"st_cap_{idx}",
-                label_visibility="collapsed",
+            # 연출 역할 (action_role) 뱃지/가이드
+            st.markdown(
+                f'<div style="font-size:0.73rem; color:#4A7C59; font-weight:700; margin:0.35rem 0 0.25rem 0;">🎯 {action_role}</div>',
+                unsafe_allow_html=True,
             )
+
+            # 자막 카피 입력창 (1번 훅은 줄바꿈 지원을 위해 높이 지정)
+            current_cap = cut.get("caption", "")
+            if is_hook:
+                updated_cap = st.text_area(
+                    f"자막 #{idx+1} (줄바꿈 가능)",
+                    value=current_cap,
+                    key=f"st_cap_{idx}",
+                    height=68,
+                    label_visibility="collapsed",
+                )
+            else:
+                updated_cap = st.text_input(
+                    f"자막 #{idx+1}",
+                    value=current_cap,
+                    key=f"st_cap_{idx}",
+                    label_visibility="collapsed",
+                )
             cuts_list[idx]["caption"] = updated_cap
 
             # 카드 하단 지표
-            ctr = 14.2 - (idx * 1.8)
-            reason_txt = cut.get("reason", "알고리즘 유지율 극대화 컷")
+            ctr = 14.5 - (idx * 1.6)
             st.markdown(
                 f"""
-                <div style="display:flex; justify-content:space-between; align-items:center; margin-top:0.5rem; padding-top:0.4rem; border-top:1px solid #F0ECE4; font-size:0.75rem; color:#5E5548;">
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-top:0.4rem; padding-top:0.35rem; border-top:1px solid #F0ECE4; font-size:0.72rem; color:#5E5548;">
                     <div style="display:flex; align-items:center; gap:0.5rem;">
+                        <span>⏱️ {dur_s:.1f}초</span>
                         <span>🎯 예상 CTR {ctr:.1f}%</span>
                         <span>📱 1080x1920 세로형</span>
                     </div>
