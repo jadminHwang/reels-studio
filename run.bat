@@ -48,7 +48,7 @@ echo   종료하려면 이 창에서 Ctrl + C 를 누르세요.
 echo ============================================================
 echo.
 
-%PYTHON_EXE% -m streamlit run app.py --server.port 8501
+%PYTHON_EXE% -m streamlit run app.py --server.port 8501 --server.maxUploadSize 2000
 
 if %errorlevel% neq 0 (
     goto ERROR

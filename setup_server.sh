@@ -57,7 +57,7 @@ After=network.target
 [Service]
 User=$CURRENT_USER
 WorkingDirectory=$PROJECT_DIR
-ExecStart=$PROJECT_DIR/venv/bin/streamlit run app.py --server.port 8501 --server.headless true
+ExecStart=$PROJECT_DIR/venv/bin/streamlit run app.py --server.port 8501 --server.headless true --server.maxUploadSize 2000
 Restart=always
 RestartSec=5
 StandardOutput=journal
