@@ -6,7 +6,6 @@ import sys
 from pathlib import Path
 
 import pandas as pd
-import plotly.graph_objects as go
 import streamlit as st
 
 # Windows 터미널 한글 출력 지원
@@ -46,16 +45,16 @@ SNS_PACKAGE_FILE = OUTPUTS_DIR / "sns_package.json"
 # ==========================================
 st.set_page_config(
     page_title="메바초이 | Reels Studio",
-    page_icon="✨",
+    page_icon="🎬",
     layout="wide",
-    initial_sidebar_state="collapsed",
+    initial_sidebar_state="expanded",
 )
 
 if "page" not in st.session_state:
     st.session_state.page = "upload"
 
 # ==========================================
-# 3. Stitch "Editorial Warm & Sage Green" CSS
+# 3. 스티치 테마 스타일 (웜 아이보리 & 세이지 그린)
 # ==========================================
 st.markdown(
     """
@@ -74,64 +73,51 @@ st.markdown(
         background-color: #FAF6F0 !important;
     }
 
-    .main .block-container {
-        max-width: 860px !important;
-        padding-top: 1rem !important;
-        padding-bottom: 7rem !important;
-        padding-left: 1.25rem !important;
-        padding-right: 1.25rem !important;
-    }
-
     /* 사이드바 */
     section[data-testid="stSidebar"] {
         background-color: #F0ECE4 !important;
         border-right: 1px solid #E4E0D8 !important;
     }
 
-    /* Stitch 카드 스타일 */
+    section[data-testid="stSidebar"] hr {
+        border-color: #E4E0D8 !important;
+    }
+
+    /* 스티치 라운드 카드 */
     .stitch-card {
         background-color: #FFFFFF;
         border: 1px solid #E4E0D8;
-        border-radius: 20px;
-        padding: 1.25rem 1.5rem;
+        border-radius: 18px;
+        padding: 1.5rem;
         margin-bottom: 1.25rem;
-        box-shadow: 0 1px 4px rgba(46, 50, 48, 0.04);
-        position: relative;
+        box-shadow: 0 1px 3px rgba(46, 50, 48, 0.04);
     }
 
-    .stitch-card-active {
-        background-color: #FFFFFF;
-        border: 2px solid #4A7C59;
-        border-radius: 20px;
-        padding: 1.25rem 1.5rem;
-        margin-bottom: 1.25rem;
-        box-shadow: 0 4px 12px rgba(74, 124, 89, 0.08);
-    }
-
-    /* 뱃지 & 칩스 */
-    .stitch-pill {
+    /* 뱃지 */
+    .stitch-badge {
         display: inline-flex;
         align-items: center;
-        padding: 0.2rem 0.65rem;
+        padding: 0.25rem 0.65rem;
         background-color: #C8E8D0;
         color: #2A6038;
         border: 1px solid rgba(74, 124, 89, 0.25);
-        border-radius: 9999px;
-        font-size: 0.72rem;
+        border-radius: 8px;
+        font-size: 0.75rem;
         font-weight: 700;
         letter-spacing: 0.02em;
     }
 
-    .stitch-pill-muted {
+    .stitch-pill {
         display: inline-flex;
         align-items: center;
-        padding: 0.2rem 0.65rem;
+        padding: 0.25rem 0.75rem;
         background-color: #F5F1EA;
         color: #5E5548;
         border: 1px solid #E4E0D8;
         border-radius: 9999px;
-        font-size: 0.72rem;
+        font-size: 0.75rem;
         font-weight: 600;
+        margin-right: 0.35rem;
     }
 
     .chip-item {
@@ -154,16 +140,16 @@ st.markdown(
 
     .title-large {
         font-family: 'Literata', serif !important;
-        font-size: 1.75rem;
+        font-size: 1.85rem;
         font-weight: 700;
         letter-spacing: -0.02em;
         color: #2E3230;
-        margin-top: 0.3rem;
-        margin-bottom: 0.25rem;
+        margin-top: 0.35rem;
+        margin-bottom: 0.3rem;
     }
 
     .subtitle-muted {
-        font-size: 0.9rem;
+        font-size: 0.92rem;
         color: #5E5548;
         margin-bottom: 1.25rem;
         line-height: 1.5;
@@ -175,7 +161,7 @@ st.markdown(
         color: #FFFFFF !important;
         font-weight: 700 !important;
         border: 1px solid #4A7C59 !important;
-        border-radius: 14px !important;
+        border-radius: 12px !important;
         padding: 0.65rem 1.4rem !important;
         box-shadow: 0 2px 6px rgba(74, 124, 89, 0.2) !important;
         transition: all 0.2s ease !important;
@@ -192,7 +178,7 @@ st.markdown(
         background-color: #F5F1EA !important;
         color: #2E3230 !important;
         border: 1px solid #E4E0D8 !important;
-        border-radius: 14px !important;
+        border-radius: 12px !important;
         font-weight: 600 !important;
         transition: all 0.2s ease !important;
     }
@@ -205,21 +191,20 @@ st.markdown(
 
     .stDownloadButton button {
         width: 100% !important;
-        border-radius: 14px !important;
-        padding: 0.65rem 1.2rem !important;
+        border-radius: 12px !important;
     }
 
-    /* 입력 폼 */
+    /* 입력 요소 */
     input[type="text"], textarea, select, div[data-baseweb="select"] {
         background-color: #FFFFFF !important;
         border: 1px solid #E4E0D8 !important;
         color: #2E3230 !important;
-        border-radius: 12px !important;
+        border-radius: 10px !important;
     }
 
     input[type="text"]:focus, textarea:focus {
         border-color: #4A7C59 !important;
-        box-shadow: 0 0 0 2px rgba(74, 124, 89, 0.2) !important;
+        box-shadow: 0 0 0 2px rgba(74, 124, 89, 0.15) !important;
     }
 
     div[data-baseweb="select"] * {
@@ -227,7 +212,7 @@ st.markdown(
         color: #2E3230 !important;
     }
 
-    /* 업로더 영역 */
+    /* 파일 업로더 */
     div[data-testid="stFileUploader"] {
         background-color: transparent !important;
     }
@@ -235,14 +220,13 @@ st.markdown(
     div[data-testid="stFileUploader"] section {
         background-color: #F5F1EA !important;
         border: 2px dashed #C4C8BC !important;
-        border-radius: 16px !important;
-        padding: 1.5rem !important;
+        border-radius: 14px !important;
     }
 
     /* 구분선 */
     hr {
         border-color: #E4E0D8 !important;
-        margin: 1.25rem 0 !important;
+        margin: 1.5rem 0 !important;
     }
 
     .material-symbols-outlined {
@@ -256,23 +240,21 @@ st.markdown(
 )
 
 # ==========================================
-# 4. Stitch Top Header
+# 4. 상단 브랜드 헤더 (메바초이 REELS STUDIO)
 # ==========================================
-active_status = "분석 완료" if TIMELINE_FILE.exists() else "준비 완료"
-header_html = f"""
-<div style="display:flex; justify-content:space-between; align-items:center; width:100%; padding:0.6rem 0.2rem 1rem 0.2rem; border-bottom:1px solid #E4E0D8; margin-bottom:1.25rem;">
+header_html = """
+<div style="display:flex; justify-content:space-between; align-items:center; width:100%; padding:0.5rem 0.2rem 1rem 0.2rem; border-bottom:1px solid #E4E0D8; margin-bottom:1.5rem;">
     <div style="display:flex; align-items:center; gap:0.6rem;">
-        <div style="width:36px; height:36px; border-radius:10px; background:#4A7C59; display:flex; align-items:center; justify-content:center; color:#FFF;">
+        <div style="width:38px; height:38px; border-radius:12px; background:#4A7C59; display:flex; align-items:center; justify-content:center; color:#FFF; box-shadow:0 2px 5px rgba(74,124,89,0.25);">
             <span class="material-symbols-outlined" style="font-size:22px;">auto_awesome</span>
         </div>
         <div>
             <div style="font-weight:800; font-size:1.15rem; letter-spacing:0.02em; color:#2E3230; line-height:1.2;">메바초이 <span style="font-weight:600; font-size:0.8rem; color:#5E5548;">REELS STUDIO</span></div>
-            <div style="font-size:0.75rem; color:#6B6358; font-weight:500;">모바일 숏폼 자동 컷편집 & 바이럴 자막</div>
+            <div style="font-size:0.75rem; color:#6B6358; font-weight:500;">AI 숏폼 릴스 자동 편집기 & 감성 자막</div>
         </div>
     </div>
     <div style="display:flex; align-items:center; gap:0.5rem;">
-        <span class="stitch-pill">● {active_status}</span>
-        <span style="font-size:0.78rem; font-weight:700; background:#F0ECE4; border:1px solid #E4E0D8; padding:0.25rem 0.65rem; border-radius:8px; color:#2E3230;">PRO EDITION</span>
+        <span class="stitch-badge">● 서비스 정상</span>
     </div>
 </div>
 """
@@ -282,8 +264,8 @@ st.markdown(header_html, unsafe_allow_html=True)
 # 5. 사이드바 설정 패널
 # ==========================================
 with st.sidebar:
-    st.markdown('<div class="stitch-pill">설정 패널</div>', unsafe_allow_html=True)
-    st.markdown('<div class="font-headline" style="font-weight:700; font-size:1.2rem; margin-top:0.4rem; color:#2E3230;">제작 환경 설정</div>', unsafe_allow_html=True)
+    st.markdown('<div class="stitch-badge">환경 설정</div>', unsafe_allow_html=True)
+    st.markdown('<div class="font-headline" style="font-weight:700; font-size:1.15rem; margin-top:0.4rem; margin-bottom:0.1rem; color:#2E3230;">제작 환경 설정</div>', unsafe_allow_html=True)
     st.caption("영상 렌더링 스타일 및 연출 옵션")
     st.divider()
 
@@ -327,76 +309,32 @@ with st.sidebar:
     generate_sns = st.checkbox("SNS 업로드 텍스트 패키지 자동 생성", value=True)
 
     st.divider()
-    st.caption("디자인 시스템: Stitch Warm Sage")
+    st.caption("스타일: Stitch Warm Sage")
     st.caption("엔진: Google Gemini Flash & FFmpeg")
 
 
 # ==========================================
-# 6. 화면 분기 로직
+# 6. 화면 분기 로직 (st.session_state.page)
 # ==========================================
 
 # ----------------------------------------------------
-# [페이지 1: 비디오 업로드 및 AI 분석 랜딩]
+# [페이지 1: 비디오 업로드 랜딩]
 # ----------------------------------------------------
 if st.session_state.page == "upload":
-    # 1. Executive Analytics Summary Card (Stitch 스타일 상단 요약 카드)
-    top_summary_html = """
-    <div class="stitch-card">
-        <div style="display:flex; justify-content:space-between; align-items:flex-start;">
-            <div>
-                <div style="display:flex; align-items:center; gap:0.4rem; color:#4A7C59; font-weight:700; font-size:0.75rem; letter-spacing:0.04em;">
-                    <span class="material-symbols-outlined" style="font-size:16px;">insights</span>
-                    <span>SYNTHESIS METRICS</span>
-                </div>
-                <div class="title-large">스마트폰 숏폼 릴스 <span style="color:#4A7C59;">원클릭 제작</span></div>
-                <div class="subtitle-muted" style="margin-bottom:0.8rem;">원본 클립을 올리면 AI가 떡상 알고리즘 컷 편집과 감성 자막을 기획합니다.</div>
-            </div>
-            <!-- Radial Viral Gauge (SVG) -->
-            <div style="position:relative; width:68px; height:68px; flex-shrink:0; display:flex; align-items:center; justify-content:center;">
-                <svg style="width:100%; height:100%; transform:rotate(-90deg);" viewBox="0 0 48 48">
-                    <circle cx="24" cy="24" r="20" fill="none" stroke="#E4E0D8" stroke-width="3.5"></circle>
-                    <circle cx="24" cy="24" r="20" fill="none" stroke="#8ECF9E" stroke-width="3.5" stroke-dasharray="125.6" stroke-dashoffset="14.5" stroke-linecap="round"></circle>
-                    <circle cx="24" cy="24" r="20" fill="none" stroke="#4A7C59" stroke-width="3.5" stroke-dasharray="125.6" stroke-dashoffset="35" stroke-linecap="round"></circle>
-                </svg>
-                <div style="position:absolute; inset:0; display:flex; flex-direction:column; align-items:center; justify-content:center; text-align:center;">
-                    <span style="font-weight:800; font-size:15px; color:#2E3230; line-height:1;">88.4</span>
-                    <span style="font-size:9px; color:#6B6358; margin-top:2px;">/ 100</span>
-                </div>
-            </div>
-        </div>
-        <!-- Quick Tonal Specifier 3 Grid -->
-        <div style="display:grid; grid-template-columns: repeat(3, 1fr); gap:0.5rem; margin-top:0.6rem; padding-top:0.8rem; border-top:1px solid #E4E0D8; text-align:center;">
-            <div style="background:#F5F1EA; padding:0.5rem 0.2rem; border-radius:12px; border:1px solid #E4E0D8;">
-                <span style="display:block; font-size:0.72rem; color:#6B6358; font-weight:600;">바이럴 지수</span>
-                <span style="font-size:0.85rem; font-weight:800; color:#4A7C59;">최우수 (High)</span>
-            </div>
-            <div style="background:#F5F1EA; padding:0.5rem 0.2rem; border-radius:12px; border:1px solid #E4E0D8;">
-                <span style="display:block; font-size:0.72rem; color:#6B6358; font-weight:600;">평균 완주율</span>
-                <span style="font-size:0.85rem; font-weight:800; color:#2E3230;">76.3%</span>
-            </div>
-            <div style="background:#F5F1EA; padding:0.5rem 0.2rem; border-radius:12px; border:1px solid #E4E0D8;">
-                <span style="display:block; font-size:0.72rem; color:#6B6358; font-weight:600;">예상 도달량</span>
-                <span style="font-size:0.85rem; font-weight:800; color:#2E3230;">+340%</span>
-            </div>
-        </div>
-    </div>
-    """
-    st.markdown(top_summary_html, unsafe_allow_html=True)
+    col_l1, col_l2 = st.columns([3, 1])
+    with col_l1:
+        st.markdown('<div class="stitch-badge">스튜디오</div>', unsafe_allow_html=True)
+        st.markdown('<div class="title-large">영상 클립 업로드 및 숏폼 릴스 제작</div>', unsafe_allow_html=True)
+        st.markdown('<div class="subtitle-muted">촬영한 원본 클립들을 업로드하면 AI 감독관이 떡상 알고리즘 컷 편집과 감성 자막을 자동으로 기획합니다.</div>', unsafe_allow_html=True)
+    with col_l2:
+        if TIMELINE_FILE.exists():
+            st.markdown('<div style="text-align:right; margin-top:1.2rem;">', unsafe_allow_html=True)
+            if st.button("기존 타임라인 열기 →", type="secondary"):
+                st.session_state.page = "editor"
+                st.rerun()
+            st.markdown('</div>', unsafe_allow_html=True)
 
-    # 2. 파일 업로드 카드
     st.markdown('<div class="stitch-card">', unsafe_allow_html=True)
-    st.markdown(
-        """
-        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:0.75rem;">
-            <div style="display:flex; align-items:center; gap:0.4rem;">
-                <span class="material-symbols-outlined" style="color:#4A7C59; font-size:18px;">upload_file</span>
-                <span class="font-headline" style="font-weight:700; font-size:1.05rem; color:#2E3230;">원본 영상 업로드</span>
-            </div>
-            <span class="stitch-pill-muted">MP4 / MOV</span>
-        </div>
-        """,
-        unsafe_allow_html=True,
-    )
 
     uploaded_files = st.file_uploader(
         "영상 파일들을 드래그 앤 드롭하세요 (.mp4, .mov)",
@@ -418,27 +356,22 @@ if st.session_state.page == "upload":
         key=lambda p: (int(p.stem) if p.stem.isdigit() else p.stem),
     )
 
-    st.markdown('<div style="margin-top:1rem; margin-bottom:0.4rem; font-weight:700; font-size:0.82rem; color:#5E5548;">준비된 클립 목록</div>', unsafe_allow_html=True)
+    st.markdown('<div style="margin-top:1rem; margin-bottom:0.5rem; font-weight:700; font-size:0.85rem; color:#5E5548;">업로드된 원본 영상 목록</div>', unsafe_allow_html=True)
 
     if existing_videos:
-        chips_html = '<div style="margin-bottom:1rem;">'
+        chips_html = '<div style="margin-bottom:1.5rem;">'
         for v in existing_videos:
             size_mb = v.stat().st_size / (1024 * 1024)
             chips_html += f'<span class="chip-item">🎬 {v.name} ({size_mb:.1f}MB)</span>'
         chips_html += '</div>'
         st.markdown(chips_html, unsafe_allow_html=True)
     else:
-        st.caption("업로드된 영상이 없습니다. 스마트폰에서 촬영한 동영상을 올려주세요.")
+        st.caption("아직 준비된 영상 파일이 없습니다. 상단 영역에 영상을 업로드해 주세요.")
 
-    # 메인 액션 버튼 & 기존 타임라인 열기
-    col_act1, col_act2 = st.columns([2, 1])
-    with col_act1:
-        analyze_btn = st.button("✨ AI 분석 및 자동 타임라인 생성", type="primary", use_container_width=True)
-    with col_act2:
-        if TIMELINE_FILE.exists():
-            if st.button("기존 에디터 열기 →", type="secondary", use_container_width=True):
-                st.session_state.page = "editor"
-                st.rerun()
+    # 메인 액션 버튼
+    st.markdown('<div style="margin-top:1.5rem;">', unsafe_allow_html=True)
+    analyze_btn = st.button("✨ AI 분석 및 타임라인 생성", type="primary", use_container_width=True)
+    st.markdown('</div>', unsafe_allow_html=True)
 
     if analyze_btn:
         if not existing_videos:
@@ -471,7 +404,7 @@ if st.session_state.page == "upload":
 
 
 # ----------------------------------------------------
-# [페이지 2: AI 타임라인 & 자막 에디터 (Stitch 스타일)]
+# [페이지 2: AI 타임라인 & 자막 에디터]
 # ----------------------------------------------------
 elif st.session_state.page == "editor":
     timeline_data = None
@@ -482,8 +415,8 @@ elif st.session_state.page == "editor":
         except Exception:
             timeline_data = None
 
-    # 상단 내비게이션 바 & 뱃지
-    col_nav1, col_nav2 = st.columns([1, 2])
+    # 상단 내비게이션 바 & 한글 요약 뱃지
+    col_nav1, col_nav2 = st.columns([1, 3])
     with col_nav1:
         if st.button("← 새 영상 업로드", type="secondary"):
             st.session_state.page = "upload"
@@ -494,260 +427,94 @@ elif st.session_state.page == "editor":
             cuts = timeline_data.get("cuts", [])
             total_sec = timeline_data.get("total_duration_seconds", 0.0)
             st.markdown(
-                f'<div style="text-align:right; padding-top:0.3rem;">'
-                f'<span class="stitch-pill" style="margin-right:0.35rem;">길이: {total_sec:.1f}초</span>'
-                f'<span class="stitch-pill-muted" style="margin-right:0.35rem;">컷 {len(cuts)}개</span>'
-                f'<span class="stitch-pill-muted">9:16 세로</span>'
+                f'<div style="text-align:right; padding-top:0.4rem;">'
+                f'<span class="stitch-pill">제목: {timeline_data.get("title", "")[:16]}..</span>'
+                f'<span class="stitch-pill">길이: {total_sec:.1f}초</span>'
+                f'<span class="stitch-pill">컷 수: {len(cuts)}개</span>'
+                f'<span class="stitch-badge">9:16 세로 릴스</span>'
                 f'</div>',
                 unsafe_allow_html=True,
             )
 
-    st.markdown("<div style='height:0.5rem;'></div>", unsafe_allow_html=True)
+    st.divider()
 
     if not timeline_data:
         st.warning("타임라인 데이터가 없습니다. 먼저 영상을 업로드하여 분석을 진행해 주세요.")
     else:
         cuts_list = timeline_data.get("cuts", [])
-        total_sec = timeline_data.get("total_duration_seconds", 25.0)
 
-        # ----------------------------------------------------
-        # Section 2: Engagement Curve (시청 지속 곡선 & 바이럴 훅)
-        # ----------------------------------------------------
-        curve_header_html = """
-        <div class="stitch-card" style="padding-bottom:1rem;">
-            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:0.6rem;">
-                <div style="display:flex; align-items:center; gap:0.4rem;">
-                    <span class="material-symbols-outlined" style="color:#4A7C59; font-size:18px;">show_chart</span>
-                    <span class="font-headline" style="font-weight:700; font-size:1.05rem; color:#2E3230;">시청 지속 곡선 & 바이럴 훅</span>
-                </div>
-                <span class="stitch-pill">피크 마커 3개 감지</span>
-            </div>
-        """
-        st.markdown(curve_header_html, unsafe_allow_html=True)
+        # 1. 자막 및 타임라인 에디터 폼
+        st.markdown('<div class="stitch-card">', unsafe_allow_html=True)
+        st.markdown('<div class="font-headline" style="font-weight:700; font-size:1.2rem; color:#2E3230; margin-bottom:0.25rem;">타임라인 및 자막 에디터</div>', unsafe_allow_html=True)
+        st.caption("AI가 기획한 컷 구간과 자막을 직접 검토하고 필요에 맞게 자유롭게 수정하세요.")
 
-        # Plotly 곡선 그래프 생성 (Stitch 스타일 컬러)
-        x_pts = [0.0, total_sec * 0.15, total_sec * 0.35, total_sec * 0.55, total_sec * 0.75, total_sec * 0.9, total_sec]
-        y_pts = [75, 92, 68, 96, 70, 94, 82]
-
-        fig = go.Figure()
-        fig.add_trace(
-            go.Scatter(
-                x=x_pts,
-                y=y_pts,
-                mode="lines",
-                line=dict(color="#4A7C59", width=2.8, shape="spline"),
-                fill="tozeroy",
-                fillcolor="rgba(74, 124, 89, 0.15)",
-                hoverinfo="x+y",
-            )
-        )
-        # Peak Markers
-        peak_x = [total_sec * 0.15, total_sec * 0.55, total_sec * 0.9]
-        peak_y = [92, 96, 94]
-        fig.add_trace(
-            go.Scatter(
-                x=peak_x,
-                y=peak_y,
-                mode="markers+text",
-                marker=dict(size=8, color="#4A7C59", line=dict(color="#FFFFFF", width=2)),
-                text=["오프닝 훅", "핵심 비법", "반전 CTA"],
-                textposition="top center",
-                textfont=dict(size=10, color="#4A7C59", family="Nunito Sans"),
-                showlegend=False,
-            )
-        )
-
-        fig.update_layout(
-            height=150,
-            margin=dict(l=10, r=10, t=25, b=20),
-            plot_bgcolor="#F5F1EA",
-            paper_bgcolor="#FFFFFF",
-            xaxis=dict(
-                showgrid=True,
-                gridcolor="#E4E0D8",
-                showline=False,
-                zeroline=False,
-                tickfont=dict(size=10, color="#6B6358"),
-                ticksuffix="s",
-            ),
-            yaxis=dict(
-                showgrid=True,
-                gridcolor="#E4E0D8",
-                showline=False,
-                zeroline=False,
-                range=[40, 105],
-                visible=False,
-            ),
-            showlegend=False,
-        )
-
-        st.plotly_chart(fig, use_container_width=True, config={"displayModeBar": False})
-
-        # Hook Point Meta Pills
-        hook_pills_html = f"""
-        <div style="display:grid; grid-template-columns: repeat(3, 1fr); gap:0.5rem; margin-top:0.4rem;">
-            <div style="background:#F5F1EA; padding:0.4rem 0.5rem; border-radius:10px; border:1px solid #E4E0D8;">
-                <div style="display:flex; align-items:center; gap:0.3rem;">
-                    <span style="width:6px; height:6px; border-radius:50%; background:#4A7C59;"></span>
-                    <span style="font-size:0.75rem; font-weight:700; color:#2E3230;">00:01</span>
-                </div>
-                <div style="font-size:0.75rem; color:#5E5548; font-weight:600; margin-top:2px;">도파민 오프닝 훅</div>
-            </div>
-            <div style="background:#F5F1EA; padding:0.4rem 0.5rem; border-radius:10px; border:1px solid #E4E0D8;">
-                <div style="display:flex; align-items:center; gap:0.3rem;">
-                    <span style="width:6px; height:6px; border-radius:50%; background:#4A7C59;"></span>
-                    <span style="font-size:0.75rem; font-weight:700; color:#2E3230;">{total_sec*0.55:.0f}s</span>
-                </div>
-                <div style="font-size:0.75rem; color:#5E5548; font-weight:600; margin-top:2px;">핵심 노하우 클라이맥스</div>
-            </div>
-            <div style="background:#F5F1EA; padding:0.4rem 0.5rem; border-radius:10px; border:1px solid #E4E0D8;">
-                <div style="display:flex; align-items:center; gap:0.3rem;">
-                    <span style="width:6px; height:6px; border-radius:50%; background:#705C30;"></span>
-                    <span style="font-size:0.75rem; font-weight:700; color:#2E3230;">{total_sec*0.9:.0f}s</span>
-                </div>
-                <div style="font-size:0.75rem; color:#5E5548; font-weight:600; margin-top:2px;">엔딩 참여(CTA) 유도</div>
-            </div>
-        </div>
-        </div>
-        """
-        st.markdown(hook_pills_html, unsafe_allow_html=True)
-
-        # ----------------------------------------------------
-        # Section 3: AI 추천 쇼츠 세그먼트 (클립 에디터)
-        # ----------------------------------------------------
-        st.markdown(
-            f"""
-            <div style="display:flex; justify-content:space-between; align-items:center; margin-top:1.25rem; margin-bottom:0.75rem;">
-                <div style="display:flex; align-items:center; gap:0.4rem;">
-                    <span class="material-symbols-outlined" style="color:#4A7C59; font-size:18px;">movie_filter</span>
-                    <span class="font-headline" style="font-weight:700; font-size:1.05rem; color:#2E3230;">AI 추천 쇼츠 세그먼트</span>
-                </div>
-                <span class="stitch-pill-muted">{len(cuts_list)}개 컷 최적화됨</span>
-            </div>
-            """,
-            unsafe_allow_html=True,
-        )
-
-        # 컷별 카드 렌더링
-        for idx, cut in enumerate(cuts_list):
-            is_active = (idx == 0)
-            card_class = "stitch-card-active" if is_active else "stitch-card"
-            badge_class = "stitch-pill" if is_active else "stitch-pill-muted"
-
-            st.markdown(f'<div class="{card_class}">', unsafe_allow_html=True)
-            col_c1, col_c2 = st.columns([3, 1])
-            with col_c1:
-                st.markdown(
-                    f'<span class="{badge_class}">CUT 0{idx+1}</span> '
-                    f'<span style="font-size:0.8rem; font-weight:600; color:#5E5548; margin-left:0.4rem;">'
-                    f'{cut.get("file_name", "")} ({cut.get("start","00:00")} ~ {cut.get("end","00:00")})</span>',
-                    unsafe_allow_html=True,
-                )
-            with col_c2:
-                viral_score = 94 - (idx * 3)
-                st.markdown(
-                    f'<div style="text-align:right;"><span style="font-size:0.75rem; color:#5E5548;">바이럴</span> '
-                    f'<span style="font-size:0.85rem; font-weight:800; color:#4A7C59;">{viral_score}점</span></div>',
-                    unsafe_allow_html=True,
-                )
-
-            # 자막 인풋 필드
-            cut_cap = cut.get("caption", "")
-            updated_cap = st.text_input(
-                f"자막 카피 #{idx+1}",
-                value=cut_cap,
-                key=f"cap_cut_{idx}",
+        # 주요 카피 2열 배치 (오프닝 훅 2줄 / 엔딩 CTA)
+        col_h, col_e = st.columns(2)
+        with col_h:
+            st.markdown('<div style="font-size:0.85rem; font-weight:700; color:#4A7C59; margin-bottom:0.3rem;">오프닝 후킹 자막 (1번 컷)</div>', unsafe_allow_html=True)
+            hook_text = st.text_area(
+                "오프닝 2줄 텍스트 (줄바꿈으로 1번째 줄 노랑 볼드 / 2번째 줄 흰색 질문 카피 구분)",
+                value=cuts_list[0].get("caption", "") if cuts_list else "",
+                height=70,
+                key="editor_hook_copy",
                 label_visibility="collapsed",
             )
-            cuts_list[idx]["caption"] = updated_cap
+            if cuts_list:
+                cuts_list[0]["caption"] = hook_text
 
-            # 연출 의도 표시
-            reason_text = cut.get("reason", "알고리즘 유지율 극대화 컷")
-            st.markdown(
-                f'<div style="display:flex; justify-content:space-between; align-items:center; margin-top:0.4rem; padding-top:0.4rem; border-top:1px solid #F0ECE4; font-size:0.78rem; color:#5E5548;">'
-                f'<span>💡 {reason_text}</span>'
-                f'<span style="font-weight:600; color:#4A7C59;">길이: {cut.get("duration_seconds", 2.0):.1f}초</span>'
-                f'</div>',
-                unsafe_allow_html=True,
+        with col_e:
+            st.markdown('<div style="font-size:0.85rem; font-weight:700; color:#4A7C59; margin-bottom:0.3rem;">엔딩 CTA 자막 (마지막 컷)</div>', unsafe_allow_html=True)
+            end_text = st.text_area(
+                "엔딩 자막",
+                value=cuts_list[-1].get("caption", "") if cuts_list else "",
+                height=70,
+                key="editor_end_copy",
+                label_visibility="collapsed",
             )
-            st.markdown('</div>', unsafe_allow_html=True)
+            if cuts_list:
+                cuts_list[-1]["caption"] = end_text
 
-        # ----------------------------------------------------
-        # Section 4: Precision Telemetry Grid (영상 정밀 분석 지표 2x2)
-        # ----------------------------------------------------
-        telemetry_html = """
-        <div style="margin-top:1.25rem; margin-bottom:0.75rem;">
-            <div style="display:flex; align-items:center; gap:0.4rem; margin-bottom:0.6rem;">
-                <span class="material-symbols-outlined" style="color:#4A7C59; font-size:18px;">equalizer</span>
-                <span class="font-headline" style="font-weight:700; font-size:1.05rem; color:#2E3230;">영상 정밀 분석 지표</span>
-            </div>
-            <div style="display:grid; grid-template-columns: repeat(2, 1fr); gap:0.6rem;">
-                <div class="stitch-card" style="margin-bottom:0; padding:1rem;">
-                    <span style="font-size:0.75rem; color:#5E5548; font-weight:600; display:block;">평균 발화 속도</span>
-                    <div style="display:flex; align-items:baseline; gap:0.25rem; margin-top:0.25rem;">
-                        <span class="font-headline" style="font-size:1.35rem; font-weight:800; color:#2E3230;">142</span>
-                        <span style="font-size:0.75rem; color:#5E5548; font-weight:600;">WPM</span>
-                    </div>
-                    <div style="display:flex; align-items:center; gap:0.3rem; margin-top:0.35rem; color:#4A7C59; font-size:0.75rem; font-weight:700;">
-                        <span style="width:5px; height:5px; border-radius:50%; background:#4A7C59;"></span>
-                        <span>최적 속도 구간 일치</span>
-                    </div>
-                </div>
-                <div class="stitch-card" style="margin-bottom:0; padding:1rem;">
-                    <span style="font-size:0.75rem; color:#5E5548; font-weight:600; display:block;">무음/불필요 구간</span>
-                    <div style="display:flex; align-items:baseline; gap:0.25rem; margin-top:0.25rem;">
-                        <span class="font-headline" style="font-size:1.35rem; font-weight:800; color:#2E3230;">00:14</span>
-                        <span style="font-size:0.75rem; color:#5E5548; font-weight:600;">CUT</span>
-                    </div>
-                    <div style="display:flex; align-items:center; gap:0.3rem; margin-top:0.35rem; color:#6B6358; font-size:0.75rem; font-weight:600;">
-                        <span style="width:5px; height:5px; border-radius:50%; background:#705C30;"></span>
-                        <span>전체 12% 단축 완료</span>
-                    </div>
-                </div>
-                <div class="stitch-card" style="margin-bottom:0; padding:1rem;">
-                    <span style="font-size:0.75rem; color:#5E5548; font-weight:600; display:block;">핵심 키워드 빈도</span>
-                    <div style="display:flex; flex-wrap:wrap; gap:0.3rem; margin-top:0.4rem;">
-                        <span class="stitch-pill" style="font-size:0.68rem; padding:0.15rem 0.5rem;">AI 에이전트</span>
-                        <span class="stitch-pill-muted" style="font-size:0.68rem; padding:0.15rem 0.5rem;">자동화</span>
-                        <span class="stitch-pill-muted" style="font-size:0.68rem; padding:0.15rem 0.5rem;">숏폼 수익화</span>
-                    </div>
-                </div>
-                <div class="stitch-card" style="margin-bottom:0; padding:1rem;">
-                    <span style="font-size:0.75rem; color:#5E5548; font-weight:600; display:block;">오디오 명료도</span>
-                    <div style="display:flex; align-items:baseline; gap:0.25rem; margin-top:0.25rem;">
-                        <span class="font-headline" style="font-size:1.35rem; font-weight:800; color:#2E3230;">99.2%</span>
-                    </div>
-                    <div style="display:flex; align-items:center; gap:0.3rem; margin-top:0.35rem; color:#4A7C59; font-size:0.75rem; font-weight:700;">
-                        <span style="width:5px; height:5px; border-radius:50%; background:#4A7C59;"></span>
-                        <span>노이즈 억제 최적화됨</span>
-                    </div>
-                </div>
-            </div>
-        </div>
-        """
-        st.markdown(telemetry_html, unsafe_allow_html=True)
+        # 전체 컷별 타임스탬프 & 자막 데이터 에디터
+        st.markdown('<div style="margin-top:1.2rem; margin-bottom:0.3rem; font-size:0.85rem; font-weight:700; color:#5E5548;">전체 시퀀스 편집 테이블</div>', unsafe_allow_html=True)
+        df_editor = pd.DataFrame(cuts_list)
+        col_order = ["clip_index", "file_name", "start", "end", "duration_seconds", "caption", "reason"]
+        df_editor = df_editor[[c for c in col_order if c in df_editor.columns]]
 
-        # ----------------------------------------------------
-        # Section 5: 메인 액션 버튼 (렌더링 시작)
-        # ----------------------------------------------------
-        st.markdown('<div class="stitch-card" style="margin-top:1.25rem;">', unsafe_allow_html=True)
-        col_btn1, col_btn2 = st.columns([1, 2])
-        with col_btn1:
-            save_timeline_btn = st.button("💾 타임라인 저장", type="secondary", use_container_width=True)
-            if save_timeline_btn:
-                timeline_data["cuts"] = cuts_list
+        edited_df = st.data_editor(
+            df_editor,
+            num_rows="dynamic",
+            use_container_width=True,
+            column_config={
+                "clip_index": st.column_config.NumberColumn("순번", width="small", disabled=True),
+                "file_name": st.column_config.TextColumn("클립 파일", width="medium"),
+                "start": st.column_config.TextColumn("시작 구간", width="small"),
+                "end": st.column_config.TextColumn("종료 구간", width="small"),
+                "duration_seconds": st.column_config.NumberColumn("길이(초)", format="%.1f", width="small"),
+                "caption": st.column_config.TextColumn("적용 자막", width="large"),
+                "reason": st.column_config.TextColumn("연출 의도", width="large"),
+            },
+            hide_index=True,
+        )
+
+        col_save_btn, _ = st.columns([1, 3])
+        with col_save_btn:
+            if st.button("타임라인 수정사항 저장", type="secondary"):
+                updated_cuts = edited_df.to_dict(orient="records")
+                timeline_data["cuts"] = updated_cuts
+                timeline_data["total_duration_seconds"] = sum(float(c.get("duration_seconds", 2.0)) for c in updated_cuts)
                 with open(TIMELINE_FILE, "w", encoding="utf-8") as f:
                     json.dump(timeline_data, f, ensure_ascii=False, indent=2)
-                st.success("수정된 자막 및 타임라인이 저장되었습니다.")
+                st.success("타임라인 수정사항이 timeline.json에 저장되었습니다.")
+                st.rerun()
 
-        with col_btn2:
-            render_btn = st.button("🎬 원클릭 쇼츠 편집기로 전달 & 렌더링", type="primary", use_container_width=True)
+        st.markdown('</div>', unsafe_allow_html=True)
+
+        # 2. 렌더링 액션 버튼
+        st.markdown('<div style="margin-bottom:1.5rem;">', unsafe_allow_html=True)
+        render_btn = st.button("🎬 최종 릴스 영상 렌더링", type="primary", use_container_width=True)
+        st.markdown('</div>', unsafe_allow_html=True)
 
         if render_btn:
-            timeline_data["cuts"] = cuts_list
-            with open(TIMELINE_FILE, "w", encoding="utf-8") as f:
-                json.dump(timeline_data, f, ensure_ascii=False, indent=2)
-
             r_prog = st.progress(0.0)
             r_stat = st.empty()
 
@@ -782,79 +549,53 @@ elif st.session_state.page == "editor":
             except Exception as e:
                 st.error(f"렌더링 실패: {e}")
 
-        st.markdown('</div>', unsafe_allow_html=True)
-
-        # ----------------------------------------------------
-        # Section 6: 완성 영상 및 썸네일 디스플레이
-        # ----------------------------------------------------
+        # 3. 렌더링 결과물 2단 디스플레이
         if FINAL_VIDEO_FILE.exists() or THUMBNAIL_FILE.exists():
-            st.markdown(
-                """
-                <div style="display:flex; align-items:center; gap:0.4rem; margin-top:1.5rem; margin-bottom:0.75rem;">
-                    <span class="material-symbols-outlined" style="color:#4A7C59; font-size:18px;">video_library</span>
-                    <span class="font-headline" style="font-weight:700; font-size:1.05rem; color:#2E3230;">최종 결과물 보관함</span>
-                </div>
-                """,
-                unsafe_allow_html=True,
-            )
-
-            col_v, col_t = st.columns([1, 1], gap="medium")
+            col_v, col_t = st.columns([1, 1], gap="large")
 
             with col_v:
                 st.markdown('<div class="stitch-card">', unsafe_allow_html=True)
-                st.markdown('<div class="font-headline" style="font-weight:700; font-size:1rem; margin-bottom:0.5rem; color:#2E3230;">최종 릴스 비디오 (9:16)</div>', unsafe_allow_html=True)
+                st.markdown('<div class="font-headline" style="font-weight:700; font-size:1.05rem; margin-bottom:0.75rem; color:#2E3230;">최종 완성 영상 (1080x1920 세로 릴스)</div>', unsafe_allow_html=True)
                 if FINAL_VIDEO_FILE.exists():
                     video_bytes = FINAL_VIDEO_FILE.read_bytes()
                     st.video(video_bytes)
                     file_mb = FINAL_VIDEO_FILE.stat().st_size / (1024 * 1024)
-                    st.caption(f"용량: {file_mb:.2f} MB | 1080x1920 (30fps)")
+                    st.caption(f"파일: {FINAL_VIDEO_FILE.name} | 용량: {file_mb:.2f} MB | 해상도: 1080x1920 (30fps)")
 
                     st.download_button(
                         label="릴스 영상 다운로드 (MP4)",
                         data=video_bytes,
                         file_name="final_reels.mp4",
                         mime="video/mp4",
-                        use_container_width=True,
                     )
                 st.markdown('</div>', unsafe_allow_html=True)
 
             with col_t:
                 st.markdown('<div class="stitch-card">', unsafe_allow_html=True)
-                st.markdown('<div class="font-headline" style="font-weight:700; font-size:1rem; margin-bottom:0.5rem; color:#2E3230;">자동 캡처 썸네일 커버</div>', unsafe_allow_html=True)
+                st.markdown('<div class="font-headline" style="font-weight:700; font-size:1.05rem; margin-bottom:0.75rem; color:#2E3230;">자동 캡처 썸네일 커버 (0.8초 지점)</div>', unsafe_allow_html=True)
                 if THUMBNAIL_FILE.exists():
                     thumb_bytes = THUMBNAIL_FILE.read_bytes()
                     st.image(
                         thumb_bytes,
-                        caption="오프닝 볼드 타이틀 0.8초 고화질 캡처본 (1080x1920)",
+                        caption="오프닝 볼드 타이틀이 가장 선명한 순간의 고화질 캡처본 (1080x1920)",
                         use_container_width=True,
                     )
                     thumb_kb = THUMBNAIL_FILE.stat().st_size / 1024
-                    st.caption(f"용량: {thumb_kb:.1f} KB | 1080x1920 JPG")
+                    st.caption(f"파일: {THUMBNAIL_FILE.name} | 용량: {thumb_kb:.1f} KB | 규격: 1080x1920 JPG")
 
                     st.download_button(
-                        label="썸네일 다운로드 (JPG)",
+                        label="썸네일 커버 다운로드 (JPG)",
                         data=thumb_bytes,
                         file_name="thumbnail.jpg",
                         mime="image/jpeg",
                         type="primary",
-                        use_container_width=True,
                     )
                 st.markdown('</div>', unsafe_allow_html=True)
 
-        # ----------------------------------------------------
-        # Section 7: SNS 텍스트 패키지
-        # ----------------------------------------------------
+        # 4. SNS 업로드 패키지 영역
         if SNS_PACKAGE_FILE.exists():
             st.markdown('<div class="stitch-card">', unsafe_allow_html=True)
-            st.markdown(
-                """
-                <div style="display:flex; align-items:center; gap:0.4rem; margin-bottom:0.6rem;">
-                    <span class="material-symbols-outlined" style="color:#4A7C59; font-size:18px;">share</span>
-                    <span class="font-headline" style="font-weight:700; font-size:1rem; color:#2E3230;">SNS 업로드 패키지 (인스타그램 & 쇼츠)</span>
-                </div>
-                """,
-                unsafe_allow_html=True,
-            )
+            st.markdown('<div class="font-headline" style="font-weight:700; font-size:1.05rem; margin-bottom:0.75rem; color:#2E3230;">SNS 업로드 패키지 (인스타그램 & 유튜브 쇼츠)</div>', unsafe_allow_html=True)
             try:
                 with open(SNS_PACKAGE_FILE, "r", encoding="utf-8") as f:
                     sns_content = json.load(f)
@@ -867,11 +608,11 @@ elif st.session_state.page == "editor":
                 s1, s2 = st.columns([2, 1])
                 with s1:
                     st.text_input("추천 업로드 제목", value=sns_title)
-                    st.text_area("본문 줄글 (스토리 & 레시피)", value=sns_desc, height=100)
-                    st.text_area("도달 최적화 해시태그", value=sns_tags, height=60)
+                    st.text_area("본문 줄글 (스토리 & 레시피)", value=sns_desc, height=120)
+                    st.text_area("도달 최적화 해시태그 15선", value=sns_tags, height=70)
                 with s2:
-                    st.markdown('<div style="font-size:0.8rem; font-weight:700; color:#5E5548; margin-bottom:0.25rem;">원클릭 전체 복사</div>', unsafe_allow_html=True)
-                    st.text_area("전체 텍스트 (Ctrl+A)", value=full_text, height=195)
+                    st.markdown('<div style="font-size:0.85rem; font-weight:700; color:#5E5548; margin-bottom:0.3rem;">원클릭 전체 복사 영역</div>', unsafe_allow_html=True)
+                    st.text_area("전체 텍스트 (Ctrl+A 후 복사)", value=full_text, height=230)
             except Exception:
                 pass
             st.markdown('</div>', unsafe_allow_html=True)
