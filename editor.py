@@ -234,6 +234,10 @@ def scan_available_fonts(project_dir: Path = Path(".")):
         "gangwon_bold.ttf": "GangwonEduAll Bold",
         "Griun_Yeeun-Rg.ttf": "Griun Yeeun",
         "griun_yeeun.ttf": "Griun Yeeun",
+        "GmarketSansBold.ttf": "Gmarket Sans Bold",
+        "gmarket_sans_bold.ttf": "Gmarket Sans Bold",
+        "Pretendard-Black.ttf": "Pretendard Black",
+        "pretendard_black.ttf": "Pretendard Black",
     }
 
     try:

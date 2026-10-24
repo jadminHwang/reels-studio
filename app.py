@@ -166,6 +166,20 @@ st.markdown(
         font-weight: normal;
         font-display: swap;
     }
+    @font-face {
+        font-family: 'Gmarket Sans Bold';
+        src: url('/app/static/fonts/gmarket_sans_bold.ttf') format('truetype'),
+             url('/static/fonts/gmarket_sans_bold.ttf') format('truetype');
+        font-weight: bold;
+        font-display: swap;
+    }
+    @font-face {
+        font-family: 'Pretendard Black';
+        src: url('/app/static/fonts/pretendard_black.ttf') format('truetype'),
+             url('/static/fonts/pretendard_black.ttf') format('truetype');
+        font-weight: 900;
+        font-display: swap;
+    }
 
     html, body, [class*="css"] {
         font-family: 'Nunito Sans', 'Pretendard', -apple-system, BlinkMacSystemFont, sans-serif !important;
@@ -435,81 +449,61 @@ with st.sidebar:
     AVAILABLE_FONTS = [
         {
             "id": "Bithumb Gothic Basic",
-            "title": "빗썸 고딕 Basic",
-            "badge": "NEW 추천",
-            "desc": "강렬하고 트렌디한 볼드 고딕 (쇼츠 최적화)",
+            "title": "빗썸 고딕 Basic (추천 / 쇼츠 기본)",
+            "badge": "추천",
             "sample": "먹을래요? ✨ 100만 뷰 떡상 릴스 자막",
         },
         {
             "id": "Bithumb Gothic Original",
             "title": "빗썸 고딕 Original",
-            "badge": "NEW 오리지널",
-            "desc": "세련되고 묵직한 오리지널 고딕",
+            "badge": "오리지널",
             "sample": "먹을래요? ✨ 100만 뷰 떡상 릴스 자막",
         },
         {
             "id": "GangwonEduAll Bold",
-            "title": "강원교육모두 Bold",
+            "title": "강원교육모두 Bold (쇼츠 대세)",
             "badge": "쇼츠 대세",
-            "desc": "둥글둥글하고 친근한 숏폼 대세 볼드체",
             "sample": "먹을래요? ✨ 100만 뷰 떡상 릴스 자막",
         },
         {
             "id": "Griun Yeeun",
-            "title": "그리운 예은체",
+            "title": "그리운 예은체 (감성 손글씨)",
             "badge": "감성 손글씨",
-            "desc": "따뜻하고 자연스러운 손글씨 감성",
+            "sample": "먹을래요? ✨ 100만 뷰 떡상 릴스 자막",
+        },
+        {
+            "id": "Gmarket Sans Bold",
+            "title": "Gmarket Sans Bold",
+            "badge": "강렬한 임팩트",
+            "sample": "먹을래요? ✨ 100만 뷰 떡상 릴스 자막",
+        },
+        {
+            "id": "Pretendard Black",
+            "title": "Pretendard Black",
+            "badge": "모던 미니멀",
             "sample": "먹을래요? ✨ 100만 뷰 떡상 릴스 자막",
         },
     ]
 
-    st.markdown('<div style="font-weight:700; font-size:0.85rem; color:#5E5548; margin-bottom:0.35rem;">자막 폰트 선택 & 서체 미리보기</div>', unsafe_allow_html=True)
+    st.markdown('<div style="font-weight:700; font-size:0.85rem; color:#5E5548; margin-bottom:0.25rem;">자막 폰트 선택</div>', unsafe_allow_html=True)
 
     font_ids = [f["id"] for f in AVAILABLE_FONTS]
     cur_sel_font = st.session_state.get("selected_font", "Bithumb Gothic Basic")
     cur_idx = font_ids.index(cur_sel_font) if cur_sel_font in font_ids else 0
 
     def on_sidebar_font_change():
-        st.session_state.selected_font = st.session_state.sidebar_font_radio
+        st.session_state.selected_font = st.session_state.sidebar_font_select
 
-    selected_font = st.radio(
-        "자막 폰트",
+    selected_font = st.selectbox(
+        "자막 폰트 선택",
         options=font_ids,
-        format_func=lambda fid: next((f"{f['title']} ({f['badge']})" for f in AVAILABLE_FONTS if f["id"] == fid), fid),
+        format_func=lambda fid: next((f["title"] for f in AVAILABLE_FONTS if f["id"] == fid), fid),
         index=cur_idx,
-        key="sidebar_font_radio",
+        key="sidebar_font_select",
         on_change=on_sidebar_font_change,
         label_visibility="collapsed",
     )
     st.session_state.selected_font = selected_font
-
-    # 폰트별 실제 서체 적용 비주얼 카드 렌더링
-    for f in AVAILABLE_FONTS:
-        is_sel = (f["id"] == selected_font)
-        border_style = "2px solid #4A7C59" if is_sel else "1px solid #E4E0D8"
-        bg_style = "#FFFFFF" if is_sel else "#F5F1EA"
-        badge_bg = "#C8E8D0" if is_sel else "#E4E0D8"
-        badge_fg = "#2A6038" if is_sel else "#5E5548"
-
-        preview_card_html = f"""
-        <div style="background:{bg_style}; border:{border_style}; border-radius:12px; padding:0.65rem 0.75rem; margin-bottom:0.45rem; box-shadow:0 1px 2px rgba(0,0,0,0.03);">
-            <div style="display:flex; justify-content:space-between; align-items:center;">
-                <span style="font-family:'{f['id']}', sans-serif; font-size:1.05rem; font-weight:700; color:#2E3230; line-height:1.2;">
-                    {f['title']}
-                </span>
-                <span style="font-size:0.68rem; font-weight:700; padding:0.15rem 0.45rem; border-radius:6px; background:{badge_bg}; color:{badge_fg};">
-                    {f['badge']}
-                </span>
-            </div>
-            <div style="font-family:'{f['id']}', sans-serif; font-size:0.88rem; color:#FFFFFF; margin-top:0.35rem; text-shadow:-1.5px -1.5px 0 #000, 1.5px -1.5px 0 #000, -1.5px 1.5px 0 #000, 1.5px 1.5px 0 #000; letter-spacing:0.02em;">
-                {f['sample']}
-            </div>
-            <div style="font-size:0.7rem; color:#6B6358; margin-top:0.25rem;">
-                {f['desc']}
-            </div>
-        </div>
-        """
-        st.markdown(preview_card_html, unsafe_allow_html=True)
 
     target_duration = st.slider("목표 영상 길이(초)", min_value=15, max_value=45, value=25, step=5)
     st.caption(f"목표 러닝타임: **{target_duration}초**")
@@ -651,7 +645,7 @@ if st.session_state.page == "upload":
         "자막 폰트 선택",
         options=font_id_list,
         index=cur_sel_idx,
-        format_func=lambda fid: next((f"{f['title']} ({f['badge']})" for f in AVAILABLE_FONTS if f["id"] == fid), fid),
+        format_func=lambda fid: next((f["title"] for f in AVAILABLE_FONTS if f["id"] == fid), fid),
         label_visibility="collapsed",
         key="main_font_selectbox",
     )
