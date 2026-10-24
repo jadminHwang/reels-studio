@@ -630,47 +630,47 @@ if st.session_state.page == "upload":
 
     st.markdown('</div>', unsafe_allow_html=True)
 
-    cur_font = st.session_state.get("selected_font", "Bithumb Gothic Basic")
+    # 자막 폰트 드롭다운 선택
+    st.markdown(
+        """
+        <div style="margin-top:0.75rem; margin-bottom:0.25rem;">
+            <div style="font-size:0.82rem; font-weight:700; color:#2E3230; display:flex; align-items:center; gap:0.3rem;">
+                <span class="material-symbols-outlined" style="font-size:18px; color:#4A7C59;">font_download</span>
+                <span>자막 폰트 선택</span>
+            </div>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
 
-    with st.expander(f"🎨 자막 폰트 선택: {cur_font} (클릭하여 변경)", expanded=True):
-        st.caption("원하는 서체의 [선택] 버튼을 클릭하세요. 선택된 폰트가 초록색으로 활성화되며 영상 자막에 즉시 적용됩니다.")
-        for f in AVAILABLE_FONTS:
-            is_sel = (f["id"] == cur_font)
-            border_style = "2px solid #4A7C59" if is_sel else "1px solid #D5CEC2"
-            bg_style = "#FFFFFF" if is_sel else "#F5F1EA"
-            badge_bg = "#C8E8D0" if is_sel else "#E4E0D8"
-            badge_fg = "#2A6038" if is_sel else "#5E5548"
-            sel_tag = '<span style="font-size:0.68rem; font-weight:700; padding:0.15rem 0.45rem; border-radius:6px; background:#4A7C59; color:#FFFFFF; margin-left:0.35rem;">✓ 활성화</span>' if is_sel else ''
+    font_id_list = [f["id"] for f in AVAILABLE_FONTS]
+    cur_sel_font = st.session_state.get("selected_font", "Bithumb Gothic Basic")
+    cur_sel_idx = font_id_list.index(cur_sel_font) if cur_sel_font in font_id_list else 0
 
-            f_col1, f_col2 = st.columns([3.6, 1.4])
-            with f_col1:
-                f_card = f"""
-                <div style="background:{bg_style}; border:{border_style}; border-radius:12px; padding:0.6rem 0.75rem; margin-bottom:0.35rem; box-shadow:0 1px 2px rgba(0,0,0,0.03);">
-                    <div style="display:flex; justify-content:space-between; align-items:center;">
-                        <div>
-                            <span style="font-family:'{f['id']}', sans-serif; font-size:1.02rem; font-weight:700; color:#2E3230;">
-                                {f['title']}
-                            </span>
-                            {sel_tag}
-                        </div>
-                        <span style="font-size:0.68rem; font-weight:700; padding:0.15rem 0.45rem; border-radius:6px; background:{badge_bg}; color:{badge_fg};">
-                            {f['badge']}
-                        </span>
-                    </div>
-                    <div style="font-family:'{f['id']}', sans-serif; font-size:0.9rem; color:#FFFFFF; margin-top:0.3rem; text-shadow:-1.5px -1.5px 0 #000, 1.5px -1.5px 0 #000, -1.5px 1.5px 0 #000, 1.5px 1.5px 0 #000; letter-spacing:0.02em;">
-                        {f['sample']}
-                    </div>
-                </div>
-                """
-                st.markdown(f_card, unsafe_allow_html=True)
-            with f_col2:
-                st.markdown('<div style="height: 12px;"></div>', unsafe_allow_html=True)
-                if is_sel:
-                    st.button("✓ 선택됨", key=f"fbtn_{f['id']}", disabled=True, use_container_width=True)
-                else:
-                    if st.button("선택", key=f"fbtn_{f['id']}", type="primary", use_container_width=True):
-                        st.session_state.selected_font = f["id"]
-                        st.rerun()
+    selected_font_label = st.selectbox(
+        "자막 폰트 선택",
+        options=font_id_list,
+        index=cur_sel_idx,
+        format_func=lambda fid: next((f"{f['title']} ({f['badge']})" for f in AVAILABLE_FONTS if f["id"] == fid), fid),
+        label_visibility="collapsed",
+        key="main_font_selectbox",
+    )
+    st.session_state.selected_font = selected_font_label
+
+    # 선택된 폰트의 실물 서체 단일 미리보기 박스 (코드 태그 깨짐 없는 안전한 문자열)
+    sel_font_info = next((f for f in AVAILABLE_FONTS if f["id"] == selected_font_label), AVAILABLE_FONTS[0])
+    preview_box_html = (
+        f'<div style="background:#FAF8F5; border:1.5px solid #D5CEC2; border-radius:10px; padding:0.6rem 0.8rem; margin-top:0.35rem; margin-bottom:0.75rem;">'
+        f'<div style="display:flex; justify-content:space-between; align-items:center; font-size:0.72rem; color:#5E5548; font-weight:600;">'
+        f'<span>서체 실물 미리보기: <b>{sel_font_info["title"]}</b></span>'
+        f'<span style="background:#C8E8D0; color:#2A6038; padding:1px 6px; border-radius:4px; font-weight:700;">{sel_font_info["badge"]}</span>'
+        f'</div>'
+        f'<div style="font-family:\'{sel_font_info["id"]}\', sans-serif; font-size:1.05rem; font-weight:700; color:#FFFFFF; margin-top:0.35rem; text-shadow:-1.5px -1.5px 0 #000, 1.5px -1.5px 0 #000, -1.5px 1.5px 0 #000, 1.5px 1.5px 0 #000; letter-spacing:0.02em;">'
+        f'{sel_font_info["sample"]}'
+        f'</div>'
+        f'</div>'
+    )
+    st.markdown(preview_box_html, unsafe_allow_html=True)
 
     # 액션 버튼
     analyze_btn = st.button("AI 분석 및 쇼츠 세그먼트 추출", type="primary", use_container_width=True)
