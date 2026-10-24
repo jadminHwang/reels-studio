@@ -11,11 +11,23 @@ echo "============================================================"
 PROJECT_DIR=$(pwd)
 CURRENT_USER=$(whoami)
 
-echo "[1/6] 시스템 패키지 업데이트 및 FFmpeg/파이썬 설치 중..."
+echo "[1/7] 시스템 패키지 업데이트 및 FFmpeg/파이썬 설치 중..."
 sudo apt update -y
 sudo apt install -y python3-pip python3-venv git ffmpeg fonts-nanum curl
 
-echo "[2/6] 프로젝트 필수 디렉터리 구조 생성 중..."
+echo "[2/7] 평생 무료 e2-micro용 가상 메모리(4GB Swap) 설정 중..."
+if [ ! -f /swapfile ]; then
+    sudo fallocate -l 4G /swapfile || sudo dd if=/dev/zero of=/swapfile bs=1M count=4096
+    sudo chmod 600 /swapfile
+    sudo mkswap /swapfile
+    sudo swapon /swapfile
+    echo '/swapfile none swap sw 0 0' | sudo tee -a /etc/fstab
+    echo "✓ 4GB 가상 메모리 설정 완료 (메모리 부족 방지)"
+else
+    echo "✓ 이미 가상 메모리가 설정되어 있습니다."
+fi
+
+echo "[3/7] 프로젝트 필수 디렉터리 구조 생성 중..."
 mkdir -p inputs outputs assets/bgm assets/fonts .streamlit
 
 echo "[3/6] 파이썬 가상환경(venv) 생성 및 패키지 설치 중..."

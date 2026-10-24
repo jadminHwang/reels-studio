@@ -10,11 +10,16 @@ __pycache__/
 # 편집 임시 파일 및 대용량 출력물
 temp_clips/
 temp_preview/
-outputs/*.mp4
-inputs/*.mp4
-inputs/*.mov
+outputs/*
+!outputs/.gitkeep
+inputs/*
+!inputs/.gitkeep
+*.zip
+/*.ttf
 
-# IDE 설정
+# IDE 및 임시 디렉터리
 .vscode/
 .idea/
 .DS_Store
+.tempmediaStorage/
+.system_generated/
