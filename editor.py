@@ -151,9 +151,14 @@ def split_into_two_lines(text: str) -> str:
 
 def generate_ass_subtitles(cuts: list, ass_path: Path, font_name: str = "GangwonEduAll Bold"):
     """
-    레퍼런스 스타일 ASS 릴스 자막 파일 생성:
-    - 1번 컷: 화면 정중앙 2줄 볼드 (1줄 90pt 옐로우 #FFDE00 + 외곽선 5.5px + 그림자 3.5px / 2줄 68pt 화이트 + 외곽선 3.5px + 그림자 2.8px)
-    - 2번 컷부터: 상단 26% 가슴 높이 지점 (MarginV=500), 72pt 화이트, 세련된 반투명 블랙 둥근 박스(BorderStyle=3, Outline=16)
+    유튜브 쇼츠(YouTube Shorts) 레퍼런스 스타일 ASS 자막 파일 생성:
+    - 위치: 화면 정중앙/가슴 높이 (Alignment: 5, Y ≈ 960px)
+    - 폰트: 도톰하고 가독성 높은 볼드 산세리프 (92pt)
+    - 컬러: 선명한 순백색(#FFFFFF) 본문 + 두껍고 또렷한 블랙 외곽선(5.8px) + 소프트 드롭 섀도우(2.8px)
+    - 특징: 불투명/반투명 검은 배경 박스를 완전히 제거하여 영상의 피사체를 가리지 않고 몰입감 극대화
+    - 팝인 효과: 자막 등장 시 0.15초간 미세 바운스(106% -> 100%)로 역동적인 숏폼 텐션 연출
+    - 1번 컷(오프닝 훅): 1줄 옐로우(#FFDE00, 96pt) + 2줄 화이트(#FFFFFF, 74pt) 2줄 임팩트
+    - 2번 컷 이후: 중앙 배치 92pt 화이트 볼드 자막
     """
     header = f"""[Script Info]
 ScriptType: v4.00+
@@ -163,8 +168,8 @@ ScaledBorderAndShadow: yes
 
 [V4+ Styles]
 Format: Name, Fontname, Fontsize, PrimaryColour, SecondaryColour, OutlineColour, BackColour, Bold, Italic, Underline, StrikeOut, ScaleX, ScaleY, Spacing, Angle, BorderStyle, Outline, Shadow, Alignment, MarginL, MarginR, MarginV, Encoding
-Style: HookCenter,{font_name},90,&H0000DEFF&,&H000000FF,&H00000000,&H80000000,1,0,0,0,100,100,1,0,1,5.5,3.5,5,40,40,0,1
-Style: ProcessUpper,{font_name},72,&H00FFFFFF,&H000000FF,&H80000000,&H80000000,1,0,0,0,100,100,1,0,3,16,0,8,40,40,500,1
+Style: ShortsHook,{font_name},96,&H0000DEFF&,&H000000FF,&H00000000,&H60000000,1,0,0,0,100,100,1,0,1,6.0,3.0,5,50,50,0,1
+Style: ShortsBody,{font_name},92,&H00FFFFFF,&H000000FF,&H00000000,&H60000000,1,0,0,0,100,100,1,0,1,5.8,2.8,5,50,50,0,1
 
 [Events]
 Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
@@ -179,7 +184,7 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
         raw_caption = cut.get("caption", "").strip()
 
         if idx == 1:
-            style = "HookCenter"
+            style = "ShortsHook"
             if "\n" in raw_caption:
                 lines = [l.strip() for l in raw_caption.split("\n") if l.strip()]
             elif "\\N" in raw_caption:
@@ -194,16 +199,20 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
                 line1 = lines[0] if lines else ""
                 line2 = ""
 
+            pop_anim = "{\\t(0,90,\\fscx106\\fscy106)\\t(90,170,\\fscx100\\fscy100)}"
             if line2:
                 caption = (
-                    f"{{\\fs90\\1c&H0000DEFF&\\3c&H00000000&\\bord5.5\\shad3.5\\b1}}{line1}\\N"
-                    f"{{\\fs68\\1c&H00FFFFFF&\\3c&H00000000&\\bord3.5\\shad2.8\\b1}}{line2}"
+                    f"{pop_anim}{{\\fs96\\1c&H0000DEFF&\\3c&H00000000&\\bord6.0\\shad3.0\\b1}}{line1}\\N"
+                    f"{{\\fs74\\1c&H00FFFFFF&\\3c&H00000000&\\bord4.8\\shad2.6\\b1}}{line2}"
                 )
             else:
-                caption = f"{{\\fs90\\1c&H0000DEFF&\\3c&H00000000&\\bord5.5\\shad3.5\\b1}}{line1}"
+                caption = f"{pop_anim}{{\\fs96\\1c&H0000DEFF&\\3c&H00000000&\\bord6.0\\shad3.0\\b1}}{line1}"
         else:
-            style = "ProcessUpper"
-            caption = raw_caption.replace("\n", " ")
+            style = "ShortsBody"
+            # 줄바꿈 및 팝인 애니메이션 적용
+            formatted_text = raw_caption.replace("\n", "\\N")
+            pop_anim = "{\\t(0,80,\\fscx105\\fscy105)\\t(80,160,\\fscx100\\fscy100)}"
+            caption = f"{pop_anim}{{\\fs92\\1c&H00FFFFFF&\\3c&H00000000&\\bord5.8\\shad2.8\\b1}}{formatted_text}"
 
         events.append(f"Dialogue: 0,{start_ass},{end_ass},{style},,0,0,0,,{caption}")
         current_time += dur
