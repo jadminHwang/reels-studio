@@ -99,6 +99,7 @@ def upload_and_wait_videos(video_paths: List[Path], client=None, progress_callba
 def generate_timeline_from_videos(
     video_files: List[Path],
     target_duration: float = 25.0,
+    user_prompt: Optional[str] = None,
     progress_callback=None,
 ) -> dict:
     client = get_gemini_client()
@@ -113,10 +114,18 @@ def generate_timeline_from_videos(
         contents.append(f"[클립 {idx} 정보: 파일명='{path.name}']")
         contents.append(f_obj)
 
+    intent_section = ""
+    if user_prompt and user_prompt.strip():
+        intent_section = f"""
+[🎯 사용자가 요청한 핵심 주제 및 연출 의도]
+- 사용자 지정 의도: "{user_prompt.strip()}"
+- 위 사용자의 기획 의도와 주제를 최우선으로 반영하여, 해당 주제가 돋보이도록 컷 선정, 오프닝 훅 키워드, 자막 문구의 톤앤매너, BGM 및 엔딩 CTA를 완성하십시오.
+"""
+
     prompt = f"""
 당신은 대한민국 최정상급의 감각적이고 고급스러운 [숏폼 총괄 디렉터]입니다.
 재료의 질감이 살아나는 매크로 샷, 정교한 손동작, 절제된 리듬감, 시각적 쾌감을 최우선 가치로 두고 제공된 {len(video_files)}개의 영상 클립을 분석해 최상의 숏폼 편집 기획안을 완성해 주십시오.
-
+{intent_section}
 [🎬 숏폼 총괄 디렉터 연출 원칙]
 1. 🚨 첫 1~2초 후킹 (Opening Hook) - 시각적 쾌감 극대화:
    - 절대로 조리/제작 과정을 순서대로 시작하지 마십시오.
@@ -187,20 +196,21 @@ def generate_timeline_from_videos(
 # ==========================================
 # 4. SNS 업로드 패키지 자동 생성 함수
 # ==========================================
-def generate_sns_package(timeline_data: dict) -> dict:
+def generate_sns_package(timeline_data: dict, user_prompt: Optional[str] = None) -> dict:
     """타임라인 기획안을 바탕으로 인스타그램/유튜브 쇼츠 업로드용 제목, 본문, 해시태그 패키지를 생성합니다."""
     client = get_gemini_client()
 
     title = timeline_data.get("title", "")
     concept = timeline_data.get("concept", "")
     cuts_summary = "\n".join([f"- {c.get('caption')}" for c in timeline_data.get("cuts", [])])
+    intent_line = f"\n[사용자 기획 의도]: {user_prompt.strip()}" if (user_prompt and user_prompt.strip()) else ""
 
     prompt = f"""
 당신은 인스타그램 릴스와 유튜브 쇼츠 마케팅 전문 카피라이터입니다.
 아래의 릴스 영상 기획안을 바탕으로 시청자의 폭발적인 참여(좋아요, 저장, 댓글, 공유)를 이끌어낼 [SNS 업로드 패키지]를 작성해 주세요.
 
 [영상 제목]: {title}
-[영상 콘셉트]: {concept}
+[영상 콘셉트]: {concept}{intent_line}
 [영상 자막 흐름]:
 {cuts_summary}
 

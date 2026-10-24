@@ -103,6 +103,7 @@ def reset_to_home():
     st.session_state.video_bytes = None
     st.session_state.thumb_bytes = None
     st.session_state.is_cleaned = False
+    st.session_state.user_intent = ""
     st.session_state.page = "upload"
     st.rerun()
 
@@ -559,6 +560,29 @@ if st.session_state.page == "upload":
         chips_html += '</div>'
         st.markdown(chips_html, unsafe_allow_html=True)
 
+    # 2. 사용자 기획 주제 및 연출 의도 입력창 (스티치 스타일)
+    st.markdown(
+        """
+        <div style="margin-top:0.85rem; margin-bottom:0.3rem;">
+            <div style="font-size:0.82rem; font-weight:700; color:#2E3230; display:flex; align-items:center; gap:0.3rem;">
+                <span class="material-symbols-outlined" style="font-size:18px; color:#4A7C59;">edit_note</span>
+                <span>기획 주제 및 연출 의도 (선택 사항)</span>
+            </div>
+            <div style="font-size:0.72rem; color:#6B6358; margin-top:2px;">
+                특정 메뉴/레시피명, 강조하고 싶은 손동작이나 질감, 원하는 톤앤매너를 적어주시면 AI 디렉터가 우선 반영합니다.
+            </div>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+    user_intent = st.text_input(
+        "기획 주제 및 연출 의도",
+        value=st.session_state.get("user_intent", ""),
+        placeholder="예: 고소한 호두파이 레시피, 바삭한 질감과 손동작 강조 / 카페 디저트 브이로그",
+        label_visibility="collapsed",
+    )
+    st.session_state.user_intent = user_intent
+
     st.markdown('</div>', unsafe_allow_html=True)
 
     with st.expander(f"🎨 자막 폰트: {selected_font} (실물 서체 미리보기)", expanded=False):
@@ -604,6 +628,7 @@ if st.session_state.page == "upload":
                     new_timeline = director.generate_timeline_from_videos(
                         existing_videos,
                         target_duration=float(target_duration),
+                        user_prompt=user_intent,
                         progress_callback=cb,
                     )
                     st.session_state.timeline_data = new_timeline
@@ -847,7 +872,10 @@ elif st.session_state.page in ["analysis", "editor"]:
 
                     if generate_sns:
                         try:
-                            sns_data = director.generate_sns_package(timeline_data)
+                            sns_data = director.generate_sns_package(
+                                timeline_data,
+                                user_prompt=st.session_state.get("user_intent"),
+                            )
                             st.session_state.sns_package = sns_data
                             with open(SESSION_SNS_PACKAGE_FILE, "w", encoding="utf-8") as f:
                                 json.dump(sns_data, f, ensure_ascii=False, indent=2)
