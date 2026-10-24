@@ -102,14 +102,30 @@ def format_edge_tts_rate(speed: float) -> str:
         return f"{pct}%"
 
 
-async def generate_tts_bytes_async(text: str, voice: str = "ko-KR-SunHiNeural", speed: float = 1.15) -> bytes:
-    """edge-tts를 비동기로 호출하여 오디오 바이트(mp3)를 메모리에 버퍼링합니다."""
+def ensure_edge_tts():
+    """edge-tts 패키지가 설치되어 있는지 확인하고 없으면 자동 설치합니다."""
     try:
         import edge_tts
+        return edge_tts
     except ImportError:
         import subprocess
-        subprocess.run([sys.executable, "-m", "pip", "install", "edge-tts"], check=False)
-        import edge_tts
+        # 1차 시도: pip 모듈로 설치
+        res = subprocess.run([sys.executable, "-m", "pip", "install", "edge-tts"], capture_output=True)
+        if res.returncode == 0:
+            import edge_tts
+            return edge_tts
+        # 2차 시도: ensurepip 후 pip 설치
+        subprocess.run([sys.executable, "-m", "ensurepip", "--default-pip"], capture_output=True)
+        res2 = subprocess.run([sys.executable, "-m", "pip", "install", "edge-tts"], capture_output=True)
+        if res2.returncode == 0:
+            import edge_tts
+            return edge_tts
+        raise RuntimeError("edge-tts 패키지를 자동으로 설치할 수 없습니다. 터미널에서 'pip install edge-tts'를 실행해 주세요.")
+
+
+async def generate_tts_bytes_async(text: str, voice: str = "ko-KR-SunHiNeural", speed: float = 1.15) -> bytes:
+    """edge-tts를 비동기로 호출하여 오디오 바이트(mp3)를 메모리에 버퍼링합니다."""
+    edge_tts = ensure_edge_tts()
 
     rate_str = format_edge_tts_rate(speed)
     cleaned = clean_text_for_tts(text)

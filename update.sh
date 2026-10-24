@@ -11,7 +11,9 @@ git pull origin main
 
 echo "[2/3] 신규 의존성 패키지 점검..."
 if [ -d "venv" ]; then
-    ./venv/bin/pip install -r requirements.txt --quiet
+    ./venv/bin/pip install -r requirements.txt --quiet || ./venv/bin/python3 -m pip install -r requirements.txt || true
+elif [ -d ".venv" ]; then
+    ./.venv/bin/pip install -r requirements.txt --quiet || ./.venv/bin/python3 -m pip install -r requirements.txt || true
 fi
 
 echo "[3/3] 24시간 서비스 재시작 중..."

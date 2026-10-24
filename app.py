@@ -19,6 +19,12 @@ if sys.platform == "win32":
 import director
 import editor
 
+# 필수 백그라운드 의존성(edge-tts) 자동 무결성 점검
+try:
+    editor.ensure_edge_tts()
+except Exception:
+    pass
+
 # ==========================================
 # 1. 베이스 디렉터리 초기화 및 자동 가비지 컬렉션
 # ==========================================

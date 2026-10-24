@@ -13,8 +13,15 @@ if not exist "outputs" mkdir outputs
 if not exist "assets\bgm" mkdir "assets\bgm"
 if not exist "assets\fonts" mkdir "assets\fonts"
 
-echo [2/3] Checking Git updates from GitHub...
+echo [2/3] Checking Git updates & dependencies...
 git pull origin main --quiet >nul 2>&1
+if exist ".venv\Scripts\python.exe" (
+    ".venv\Scripts\python.exe" -c "import edge_tts" >nul 2>&1
+    if errorlevel 1 (
+        echo Installing missing packages...
+        ".venv\Scripts\python.exe" -m pip install -r requirements.txt --quiet >nul 2>&1
+    )
+)
 
 echo [3/3] Launching Reels Studio on http://localhost:8501 ...
 start "" http://localhost:8501
