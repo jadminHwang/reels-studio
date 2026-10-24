@@ -135,6 +135,36 @@ st.markdown(
     @import url('https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap');
     @import url('https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/static/pretendard.css');
 
+    /* 로컬 추가 폰트 @font-face 등록 */
+    @font-face {
+        font-family: 'Bithumb Gothic Basic';
+        src: url('/app/static/fonts/bithumb_basic.ttf') format('truetype'),
+             url('/static/fonts/bithumb_basic.ttf') format('truetype');
+        font-weight: bold;
+        font-display: swap;
+    }
+    @font-face {
+        font-family: 'Bithumb Gothic Original';
+        src: url('/app/static/fonts/bithumb_original.ttf') format('truetype'),
+             url('/static/fonts/bithumb_original.ttf') format('truetype');
+        font-weight: bold;
+        font-display: swap;
+    }
+    @font-face {
+        font-family: 'GangwonEduAll Bold';
+        src: url('/app/static/fonts/gangwon_bold.ttf') format('truetype'),
+             url('/static/fonts/gangwon_bold.ttf') format('truetype');
+        font-weight: bold;
+        font-display: swap;
+    }
+    @font-face {
+        font-family: 'Griun Yeeun';
+        src: url('/app/static/fonts/griun_yeeun.ttf') format('truetype'),
+             url('/static/fonts/griun_yeeun.ttf') format('truetype');
+        font-weight: normal;
+        font-display: swap;
+    }
+
     html, body, [class*="css"] {
         font-family: 'Nunito Sans', 'Pretendard', -apple-system, BlinkMacSystemFont, sans-serif !important;
         background-color: #FAF6F0 !important;
@@ -374,19 +404,75 @@ with st.sidebar:
     st.caption("스마트폰 릴스 렌더링 스타일 및 연출 옵션")
     st.divider()
 
-    scanned_fonts = editor.scan_available_fonts()
-    font_options = [
-        "GangwonEduAll Bold",
-        "Pretendard Black",
-        "Gmarket Sans Bold",
-        "SUIT Heavy",
-        "Malgun Gothic",
+    AVAILABLE_FONTS = [
+        {
+            "id": "Bithumb Gothic Basic",
+            "title": "빗썸 고딕 Basic",
+            "badge": "NEW 추천",
+            "desc": "강렬하고 트렌디한 볼드 고딕 (쇼츠 최적화)",
+            "sample": "먹을래요? ✨ 100만 뷰 떡상 릴스 자막",
+        },
+        {
+            "id": "Bithumb Gothic Original",
+            "title": "빗썸 고딕 Original",
+            "badge": "NEW 오리지널",
+            "desc": "세련되고 묵직한 오리지널 고딕",
+            "sample": "먹을래요? ✨ 100만 뷰 떡상 릴스 자막",
+        },
+        {
+            "id": "GangwonEduAll Bold",
+            "title": "강원교육모두 Bold",
+            "badge": "쇼츠 대세",
+            "desc": "둥글둥글하고 친근한 숏폼 대세 볼드체",
+            "sample": "먹을래요? ✨ 100만 뷰 떡상 릴스 자막",
+        },
+        {
+            "id": "Griun Yeeun",
+            "title": "그리운 예은체",
+            "badge": "감성 손글씨",
+            "desc": "따뜻하고 자연스러운 손글씨 감성",
+            "sample": "먹을래요? ✨ 100만 뷰 떡상 릴스 자막",
+        },
     ]
-    for fname, _ in scanned_fonts:
-        if fname not in font_options:
-            font_options.insert(0, fname)
 
-    selected_font = st.selectbox("자막 폰트", options=font_options, index=0)
+    st.markdown('<div style="font-weight:700; font-size:0.85rem; color:#5E5548; margin-bottom:0.35rem;">자막 폰트 선택 & 서체 미리보기</div>', unsafe_allow_html=True)
+
+    font_ids = [f["id"] for f in AVAILABLE_FONTS]
+    selected_font = st.radio(
+        "자막 폰트",
+        options=font_ids,
+        format_func=lambda fid: next((f"{f['title']} ({f['badge']})" for f in AVAILABLE_FONTS if f["id"] == fid), fid),
+        index=0,
+        label_visibility="collapsed",
+    )
+
+    # 폰트별 실제 서체 적용 비주얼 카드 렌더링
+    for f in AVAILABLE_FONTS:
+        is_sel = (f["id"] == selected_font)
+        border_style = "2px solid #4A7C59" if is_sel else "1px solid #E4E0D8"
+        bg_style = "#FFFFFF" if is_sel else "#F5F1EA"
+        badge_bg = "#C8E8D0" if is_sel else "#E4E0D8"
+        badge_fg = "#2A6038" if is_sel else "#5E5548"
+
+        preview_card_html = f"""
+        <div style="background:{bg_style}; border:{border_style}; border-radius:12px; padding:0.65rem 0.75rem; margin-bottom:0.45rem; box-shadow:0 1px 2px rgba(0,0,0,0.03);">
+            <div style="display:flex; justify-content:space-between; align-items:center;">
+                <span style="font-family:'{f['id']}', sans-serif; font-size:1.05rem; font-weight:700; color:#2E3230; line-height:1.2;">
+                    {f['title']}
+                </span>
+                <span style="font-size:0.68rem; font-weight:700; padding:0.15rem 0.45rem; border-radius:6px; background:{badge_bg}; color:{badge_fg};">
+                    {f['badge']}
+                </span>
+            </div>
+            <div style="font-family:'{f['id']}', sans-serif; font-size:0.88rem; color:#FFFFFF; margin-top:0.35rem; text-shadow:-1.5px -1.5px 0 #000, 1.5px -1.5px 0 #000, -1.5px 1.5px 0 #000, 1.5px 1.5px 0 #000; letter-spacing:0.02em;">
+                {f['sample']}
+            </div>
+            <div style="font-size:0.7rem; color:#6B6358; margin-top:0.25rem;">
+                {f['desc']}
+            </div>
+        </div>
+        """
+        st.markdown(preview_card_html, unsafe_allow_html=True)
 
     target_duration = st.slider("목표 영상 길이(초)", min_value=15, max_value=45, value=25, step=5)
     st.caption(f"목표 러닝타임: **{target_duration}초**")
@@ -448,6 +534,31 @@ if st.session_state.page == "upload":
         st.markdown(chips_html, unsafe_allow_html=True)
 
     st.markdown('</div>', unsafe_allow_html=True)
+
+    with st.expander(f"🎨 자막 폰트: {selected_font} (실물 서체 미리보기)", expanded=False):
+        st.caption("아래 카드의 글씨는 해당 폰트의 실제 서체 모양 그대로 렌더링된 모습입니다.")
+        for f in AVAILABLE_FONTS:
+            is_sel = (f["id"] == selected_font)
+            border_style = "2px solid #4A7C59" if is_sel else "1px solid #E4E0D8"
+            bg_style = "#FFFFFF" if is_sel else "#F5F1EA"
+            badge_bg = "#C8E8D0" if is_sel else "#E4E0D8"
+            badge_fg = "#2A6038" if is_sel else "#5E5548"
+            f_card = f"""
+            <div style="background:{bg_style}; border:{border_style}; border-radius:12px; padding:0.65rem 0.75rem; margin-bottom:0.45rem;">
+                <div style="display:flex; justify-content:space-between; align-items:center;">
+                    <span style="font-family:'{f['id']}', sans-serif; font-size:1.05rem; font-weight:700; color:#2E3230;">
+                        {f['title']}
+                    </span>
+                    <span style="font-size:0.68rem; font-weight:700; padding:0.15rem 0.45rem; border-radius:6px; background:{badge_bg}; color:{badge_fg};">
+                        {f['badge']}
+                    </span>
+                </div>
+                <div style="font-family:'{f['id']}', sans-serif; font-size:0.92rem; color:#FFFFFF; margin-top:0.35rem; text-shadow:-1.5px -1.5px 0 #000, 1.5px -1.5px 0 #000, -1.5px 1.5px 0 #000, 1.5px 1.5px 0 #000; letter-spacing:0.02em;">
+                    {f['sample']}
+                </div>
+            </div>
+            """
+            st.markdown(f_card, unsafe_allow_html=True)
 
     # 액션 버튼
     analyze_btn = st.button("✨ AI 분석 및 쇼츠 세그먼트 추출", type="primary", use_container_width=True)

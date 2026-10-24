@@ -82,18 +82,32 @@ def scan_available_fonts(project_dir: Path = Path(".")):
                     font_files.append(f)
 
     available_fonts = []
+    known_name_map = {
+        "Bithumb Gothic Basic.ttf": "Bithumb Gothic Basic",
+        "Bithumb Gothic Original.ttf": "Bithumb Gothic Original",
+        "bithumb_basic.ttf": "Bithumb Gothic Basic",
+        "bithumb_original.ttf": "Bithumb Gothic Original",
+        "강원교육모두 Bold.ttf": "GangwonEduAll Bold",
+        "gangwon_bold.ttf": "GangwonEduAll Bold",
+        "Griun_Yeeun-Rg.ttf": "Griun Yeeun",
+        "griun_yeeun.ttf": "Griun Yeeun",
+    }
+
     try:
         from fontTools.ttLib import TTFont
         for fpath in font_files:
+            if fpath.name in known_name_map:
+                available_fonts.append((known_name_map[fpath.name], fpath))
+                continue
             try:
                 font = TTFont(fpath)
                 family_name = None
                 for record in font["name"].names:
-                    if record.nameID in (1, 4):
+                    if record.nameID in (4, 1):
                         try:
                             name_val = record.toUnicode()
-                            if name_val and not family_name:
-                                family_name = name_val
+                            if name_val and not family_name and len(name_val.strip()) > 1:
+                                family_name = name_val.strip()
                         except Exception:
                             pass
                 family_name = family_name or fpath.stem
@@ -102,9 +116,18 @@ def scan_available_fonts(project_dir: Path = Path(".")):
                 available_fonts.append((fpath.stem, fpath))
     except ImportError:
         for fpath in font_files:
-            available_fonts.append((fpath.stem, fpath))
+            name = known_name_map.get(fpath.name, fpath.stem)
+            available_fonts.append((name, fpath))
 
-    return available_fonts
+    # 중복 제거 (이름 기준)
+    unique_fonts = []
+    seen_names = set()
+    for name, fpath in available_fonts:
+        if name not in seen_names:
+            seen_names.add(name)
+            unique_fonts.append((name, fpath))
+
+    return unique_fonts
 
 
 def select_best_font(available_fonts):
@@ -401,7 +424,8 @@ def render_reels(
     generate_ass_subtitles(cuts, ass_file, font_name=selected_font)
 
     ass_filter_path = ass_file.resolve().as_posix().replace(":", "\\:")
-    subtitle_filter = f"subtitles='{ass_filter_path}':fontsdir='.'"
+    fonts_dir_path = Path("assets/fonts").resolve().as_posix().replace(":", "\\:")
+    subtitle_filter = f"subtitles='{ass_filter_path}':fontsdir='{fonts_dir_path}'"
 
     burn_cmd = [
         ffmpeg_exe,

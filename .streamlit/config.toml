@@ -10,3 +10,4 @@ port = 8501
 headless = true
 enableCORS = false
 enableXsrfProtection = false
+enableStaticServing = true
