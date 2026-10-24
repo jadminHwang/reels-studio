@@ -242,6 +242,8 @@ def render_reels(
     timeline_data: dict,
     output_video_path: Path = Path("outputs/final_reels_v5.mp4"),
     thumbnail_path: Path = Path("outputs/thumbnail.jpg"),
+    input_dir: Optional[Path] = None,
+    temp_dir: Optional[Path] = None,
     selected_font: Optional[str] = None,
     use_zoom: bool = False,
     use_bgm: bool = False,
@@ -259,9 +261,13 @@ def render_reels(
     if not selected_font:
         selected_font, _ = select_best_font(available_fonts)
 
-    temp_dir = Path("temp_clips")
-    temp_dir.mkdir(exist_ok=True)
-    output_video_path.parent.mkdir(exist_ok=True)
+    if input_dir is None:
+        input_dir = Path("inputs")
+    if temp_dir is None:
+        temp_dir = Path("temp_clips") / (output_video_path.parent.name if output_video_path.parent.name != "outputs" else "default")
+
+    temp_dir.mkdir(parents=True, exist_ok=True)
+    output_video_path.parent.mkdir(parents=True, exist_ok=True)
 
     clip_paths = []
     total_cuts = len(cuts)
@@ -272,10 +278,14 @@ def render_reels(
             progress_callback(f"[{idx}/{total_cuts}] 클립 컷팅 및 9:16 규격 변환 중: {cut.get('caption', '')}", (idx / (total_cuts + 3)))
 
         file_name = cut["file_name"]
-        input_video = Path("inputs") / file_name
+        input_video = input_dir / file_name
 
         if not input_video.exists():
-            raise FileNotFoundError(f"입력 비디오 파일을 찾을 수 없습니다: {input_video}")
+            # 혹시 원본 파일명이 절대경로나 기본 inputs에 있을 경우 대비
+            if (Path("inputs") / file_name).exists():
+                input_video = Path("inputs") / file_name
+            else:
+                raise FileNotFoundError(f"입력 비디오 파일을 찾을 수 없습니다: {input_video}")
 
         start_sec = parse_timestamp_to_seconds(cut["start"])
         end_sec = parse_timestamp_to_seconds(cut["end"])
@@ -407,7 +417,7 @@ def render_reels(
 
     # 6. 임시 파일 정리
     try:
-        shutil.rmtree(temp_dir)
+        shutil.rmtree(temp_dir, ignore_errors=True)
     except Exception:
         pass
 

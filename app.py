@@ -1,8 +1,11 @@
+import io
 import json
 import os
 import shutil
 import subprocess
 import sys
+import time
+import uuid
 from pathlib import Path
 
 import pandas as pd
@@ -17,14 +20,15 @@ import director
 import editor
 
 # ==========================================
-# 1. 디렉터리 자동 초기화
+# 1. 베이스 디렉터리 초기화 및 자동 가비지 컬렉션
 # ==========================================
 INPUTS_DIR = Path("inputs")
 OUTPUTS_DIR = Path("outputs")
+TEMP_CLIPS_DIR = Path("temp_clips")
 BGM_DIR = Path("assets/bgm")
 FONTS_DIR = Path("assets/fonts")
 
-for d in [INPUTS_DIR, OUTPUTS_DIR, BGM_DIR, FONTS_DIR]:
+for d in [INPUTS_DIR, OUTPUTS_DIR, TEMP_CLIPS_DIR, BGM_DIR, FONTS_DIR]:
     d.mkdir(parents=True, exist_ok=True)
 
 for f in Path(".").glob("*.ttf"):
@@ -35,13 +39,65 @@ for f in Path(".").glob("*.ttf"):
         except Exception:
             pass
 
-TIMELINE_FILE = Path("timeline.json")
-FINAL_VIDEO_FILE = OUTPUTS_DIR / "final_reels_v5.mp4"
-THUMBNAIL_FILE = OUTPUTS_DIR / "thumbnail.jpg"
-SNS_PACKAGE_FILE = OUTPUTS_DIR / "sns_package.json"
+
+def cleanup_old_temp_files(max_age_seconds: int = 3600):
+    """1시간 이상 지난 잔여 임시 세션 디렉터리를 자동 정리하여 디스크 용량을 보호합니다."""
+    now = time.time()
+    for base in [INPUTS_DIR, OUTPUTS_DIR, TEMP_CLIPS_DIR]:
+        if not base.exists():
+            continue
+        for item in base.iterdir():
+            if item.is_dir() and item.name not in ["bgm", "fonts"]:
+                try:
+                    if now - item.stat().st_mtime > max_age_seconds:
+                        shutil.rmtree(item, ignore_errors=True)
+                except Exception:
+                    pass
+            elif item.is_file() and item.suffix.lower() in [".mp4", ".mov", ".jpg", ".png", ".ass", ".json"]:
+                try:
+                    if now - item.stat().st_mtime > max_age_seconds:
+                        item.unlink(missing_ok=True)
+                except Exception:
+                    pass
+
+
+# 앱 로드 시 오래된 고아 임시 파일 자동 클린업
+cleanup_old_temp_files(max_age_seconds=3600)
 
 # ==========================================
-# 2. 페이지 설정 & 세션 상태 초기화
+# 2. 세션별 고유 작업 공간 (UUID 분리)
+# ==========================================
+if "session_id" not in st.session_state:
+    st.session_state.session_id = str(uuid.uuid4())[:8]
+
+SESSION_ID = st.session_state.session_id
+SESSION_INPUTS_DIR = INPUTS_DIR / SESSION_ID
+SESSION_OUTPUTS_DIR = OUTPUTS_DIR / SESSION_ID
+SESSION_TEMP_DIR = TEMP_CLIPS_DIR / SESSION_ID
+
+SESSION_INPUTS_DIR.mkdir(parents=True, exist_ok=True)
+SESSION_OUTPUTS_DIR.mkdir(parents=True, exist_ok=True)
+SESSION_TEMP_DIR.mkdir(parents=True, exist_ok=True)
+
+SESSION_TIMELINE_FILE = SESSION_OUTPUTS_DIR / "timeline.json"
+SESSION_FINAL_VIDEO_FILE = SESSION_OUTPUTS_DIR / "final_reels.mp4"
+SESSION_THUMBNAIL_FILE = SESSION_OUTPUTS_DIR / "thumbnail.jpg"
+SESSION_SNS_PACKAGE_FILE = SESSION_OUTPUTS_DIR / "sns_package.json"
+
+
+def cleanup_current_session(sid: str = None):
+    """현재 세션의 모든 임시 디스크 데이터(원본, 인코딩, 썸네일 등)를 완전 파기합니다."""
+    target_id = sid or st.session_state.get("session_id")
+    if target_id:
+        for base in [INPUTS_DIR, OUTPUTS_DIR, TEMP_CLIPS_DIR]:
+            target = base / target_id
+            if target.exists():
+                shutil.rmtree(target, ignore_errors=True)
+    st.session_state.is_cleaned = True
+
+
+# ==========================================
+# 3. 페이지 설정 & 세션 상태 초기화
 # ==========================================
 st.set_page_config(
     page_title="메바초이 | Reels Studio",
@@ -54,7 +110,7 @@ if "page" not in st.session_state:
     st.session_state.page = "upload"
 
 # ==========================================
-# 3. 스티치 테마 스타일 (웜 아이보리 & 세이지 그린)
+# 4. 스티치 테마 스타일 (웜 아이보리 & 세이지 그린)
 # ==========================================
 st.markdown(
     """
@@ -131,6 +187,21 @@ st.markdown(
         font-size: 0.82rem;
         font-weight: 600;
         margin: 0.25rem 0.35rem 0.25rem 0;
+    }
+
+    /* 보안 알림 배너 */
+    .security-notice {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        background-color: #EBF5EE;
+        border: 1px solid #8ECF9E;
+        color: #2A6038;
+        padding: 0.75rem 1rem;
+        border-radius: 12px;
+        font-size: 0.85rem;
+        font-weight: 600;
+        margin-bottom: 1rem;
     }
 
     /* 타이포그래피 */
@@ -240,9 +311,9 @@ st.markdown(
 )
 
 # ==========================================
-# 4. 상단 브랜드 헤더 (메바초이 REELS STUDIO)
+# 5. 상단 브랜드 헤더 (메바초이 REELS STUDIO)
 # ==========================================
-header_html = """
+header_html = f"""
 <div style="display:flex; justify-content:space-between; align-items:center; width:100%; padding:0.5rem 0.2rem 1rem 0.2rem; border-bottom:1px solid #E4E0D8; margin-bottom:1.5rem;">
     <div style="display:flex; align-items:center; gap:0.6rem;">
         <div style="width:38px; height:38px; border-radius:12px; background:#4A7C59; display:flex; align-items:center; justify-content:center; color:#FFF; box-shadow:0 2px 5px rgba(74,124,89,0.25);">
@@ -254,14 +325,15 @@ header_html = """
         </div>
     </div>
     <div style="display:flex; align-items:center; gap:0.5rem;">
-        <span class="stitch-badge">● 서비스 정상</span>
+        <span class="stitch-pill" style="font-size:0.72rem;">세션 #{SESSION_ID}</span>
+        <span class="stitch-badge">● 보안 자동정리 활성</span>
     </div>
 </div>
 """
 st.markdown(header_html, unsafe_allow_html=True)
 
 # ==========================================
-# 5. 사이드바 설정 패널
+# 6. 사이드바 설정 패널
 # ==========================================
 with st.sidebar:
     st.markdown('<div class="stitch-badge">환경 설정</div>', unsafe_allow_html=True)
@@ -309,12 +381,12 @@ with st.sidebar:
     generate_sns = st.checkbox("SNS 업로드 텍스트 패키지 자동 생성", value=True)
 
     st.divider()
-    st.caption("스타일: Stitch Warm Sage")
-    st.caption("엔진: Google Gemini Flash & FFmpeg")
+    st.caption("서버 보호: 다운로드 시 원본/결과물 즉시 완전 삭제")
+    st.caption("보안: 세션별 독립 임시 디렉터리 분리 격리")
 
 
 # ==========================================
-# 6. 화면 분기 로직 (st.session_state.page)
+# 7. 화면 분기 로직 (st.session_state.page)
 # ==========================================
 
 # ----------------------------------------------------
@@ -327,7 +399,7 @@ if st.session_state.page == "upload":
         st.markdown('<div class="title-large">영상 클립 업로드 및 숏폼 릴스 제작</div>', unsafe_allow_html=True)
         st.markdown('<div class="subtitle-muted">촬영한 원본 클립들을 업로드하면 AI 감독관이 떡상 알고리즘 컷 편집과 감성 자막을 자동으로 기획합니다.</div>', unsafe_allow_html=True)
     with col_l2:
-        if TIMELINE_FILE.exists():
+        if "timeline_data" in st.session_state and st.session_state.timeline_data:
             st.markdown('<div style="text-align:right; margin-top:1.2rem;">', unsafe_allow_html=True)
             if st.button("기존 타임라인 열기 →", type="secondary"):
                 st.session_state.page = "editor"
@@ -345,14 +417,14 @@ if st.session_state.page == "upload":
 
     if uploaded_files:
         for f in uploaded_files:
-            target_path = INPUTS_DIR / f.name
+            target_path = SESSION_INPUTS_DIR / f.name
             if not target_path.exists():
                 with open(target_path, "wb") as out:
                     out.write(f.getbuffer())
 
-    # 현재 inputs 폴더에 있는 영상 목록
+    # 현재 세션의 inputs 폴더에 있는 영상 목록
     existing_videos = sorted(
-        list(INPUTS_DIR.glob("*.mp4")),
+        list(SESSION_INPUTS_DIR.glob("*.mp4")) + list(SESSION_INPUTS_DIR.glob("*.mov")),
         key=lambda p: (int(p.stem) if p.stem.isdigit() else p.stem),
     )
 
@@ -390,7 +462,8 @@ if st.session_state.page == "upload":
                         target_duration=float(target_duration),
                         progress_callback=cb,
                     )
-                    with open(TIMELINE_FILE, "w", encoding="utf-8") as f:
+                    st.session_state.timeline_data = new_timeline
+                    with open(SESSION_TIMELINE_FILE, "w", encoding="utf-8") as f:
                         json.dump(new_timeline, f, ensure_ascii=False, indent=2)
 
                     prog.progress(1.0)
@@ -407,18 +480,25 @@ if st.session_state.page == "upload":
 # [페이지 2: AI 타임라인 & 자막 에디터]
 # ----------------------------------------------------
 elif st.session_state.page == "editor":
-    timeline_data = None
-    if TIMELINE_FILE.exists():
+    timeline_data = st.session_state.get("timeline_data")
+    if not timeline_data and SESSION_TIMELINE_FILE.exists():
         try:
-            with open(TIMELINE_FILE, "r", encoding="utf-8") as f:
+            with open(SESSION_TIMELINE_FILE, "r", encoding="utf-8") as f:
                 timeline_data = json.load(f)
+                st.session_state.timeline_data = timeline_data
         except Exception:
             timeline_data = None
 
     # 상단 내비게이션 바 & 한글 요약 뱃지
     col_nav1, col_nav2 = st.columns([1, 3])
     with col_nav1:
-        if st.button("← 새 영상 업로드", type="secondary"):
+        if st.button("← 새 영상 만들기 (세션 정리)", type="secondary"):
+            cleanup_current_session(SESSION_ID)
+            st.session_state.session_id = str(uuid.uuid4())[:8]
+            st.session_state.timeline_data = None
+            st.session_state.video_bytes = None
+            st.session_state.thumb_bytes = None
+            st.session_state.is_cleaned = False
             st.session_state.page = "upload"
             st.rerun()
 
@@ -437,6 +517,18 @@ elif st.session_state.page == "editor":
             )
 
     st.divider()
+
+    # 다운로드 후 안전 삭제 완료 알림 배너
+    if st.session_state.get("is_cleaned", False):
+        st.markdown(
+            """
+            <div class="security-notice">
+                <span class="material-symbols-outlined" style="font-size:20px; color:#2A6038;">verified_user</span>
+                <span>🔒 다운로드가 완료되어 서버에 저장된 임시 파일(원본 영상, 렌더링 파일, 자막 등)이 즉시 안전하게 파기되었습니다. (GCP 디스크 용량 보호 완료)</span>
+            </div>
+            """,
+            unsafe_allow_html=True,
+        )
 
     if not timeline_data:
         st.warning("타임라인 데이터가 없습니다. 먼저 영상을 업로드하여 분석을 진행해 주세요.")
@@ -502,9 +594,10 @@ elif st.session_state.page == "editor":
                 updated_cuts = edited_df.to_dict(orient="records")
                 timeline_data["cuts"] = updated_cuts
                 timeline_data["total_duration_seconds"] = sum(float(c.get("duration_seconds", 2.0)) for c in updated_cuts)
-                with open(TIMELINE_FILE, "w", encoding="utf-8") as f:
+                st.session_state.timeline_data = timeline_data
+                with open(SESSION_TIMELINE_FILE, "w", encoding="utf-8") as f:
                     json.dump(timeline_data, f, ensure_ascii=False, indent=2)
-                st.success("타임라인 수정사항이 timeline.json에 저장되었습니다.")
+                st.success("타임라인 수정사항이 저장되었습니다.")
                 st.rerun()
 
         st.markdown('</div>', unsafe_allow_html=True)
@@ -524,21 +617,33 @@ elif st.session_state.page == "editor":
 
             try:
                 with st.spinner("FFmpeg 렌더링 및 고화질 썸네일 자동 추출 진행 중..."):
-                    editor.render_reels(
+                    rendered_path = editor.render_reels(
                         timeline_data,
-                        output_video_path=FINAL_VIDEO_FILE,
-                        thumbnail_path=THUMBNAIL_FILE,
+                        output_video_path=SESSION_FINAL_VIDEO_FILE,
+                        thumbnail_path=SESSION_THUMBNAIL_FILE,
+                        input_dir=SESSION_INPUTS_DIR,
+                        temp_dir=SESSION_TEMP_DIR,
                         selected_font=selected_font,
                         use_zoom=use_zoom,
                         use_bgm=use_bgm,
                         progress_callback=r_cb,
                     )
 
+                    # 브라우저 다운로드 제공을 위해 메모리 버퍼(BytesIO)로 즉시 프리로드
+                    if SESSION_FINAL_VIDEO_FILE.exists():
+                        st.session_state.video_bytes = io.BytesIO(SESSION_FINAL_VIDEO_FILE.read_bytes())
+                        st.session_state.video_mb = SESSION_FINAL_VIDEO_FILE.stat().st_size / (1024 * 1024)
+
+                    if SESSION_THUMBNAIL_FILE.exists():
+                        st.session_state.thumb_bytes = io.BytesIO(SESSION_THUMBNAIL_FILE.read_bytes())
+                        st.session_state.thumb_kb = SESSION_THUMBNAIL_FILE.stat().st_size / 1024
+
                     if generate_sns:
                         r_stat.info("SNS 업로드 패키지 생성 중...")
                         try:
                             sns_data = director.generate_sns_package(timeline_data)
-                            with open(SNS_PACKAGE_FILE, "w", encoding="utf-8") as f:
+                            st.session_state.sns_package = sns_data
+                            with open(SESSION_SNS_PACKAGE_FILE, "w", encoding="utf-8") as f:
                                 json.dump(sns_data, f, ensure_ascii=False, indent=2)
                         except Exception:
                             pass
@@ -549,57 +654,84 @@ elif st.session_state.page == "editor":
             except Exception as e:
                 st.error(f"렌더링 실패: {e}")
 
-        # 3. 렌더링 결과물 2단 디스플레이
-        if FINAL_VIDEO_FILE.exists() or THUMBNAIL_FILE.exists():
+        # 3. 렌더링 결과물 디스플레이 (메모리 버퍼 기반)
+        has_video_buffer = "video_bytes" in st.session_state and st.session_state.video_bytes is not None
+        has_thumb_buffer = "thumb_bytes" in st.session_state and st.session_state.thumb_bytes is not None
+
+        if has_video_buffer or has_thumb_buffer or SESSION_FINAL_VIDEO_FILE.exists():
             col_v, col_t = st.columns([1, 1], gap="large")
 
             with col_v:
                 st.markdown('<div class="stitch-card">', unsafe_allow_html=True)
                 st.markdown('<div class="font-headline" style="font-weight:700; font-size:1.05rem; margin-bottom:0.75rem; color:#2E3230;">최종 완성 영상 (1080x1920 세로 릴스)</div>', unsafe_allow_html=True)
-                if FINAL_VIDEO_FILE.exists():
-                    video_bytes = FINAL_VIDEO_FILE.read_bytes()
-                    st.video(video_bytes)
-                    file_mb = FINAL_VIDEO_FILE.stat().st_size / (1024 * 1024)
-                    st.caption(f"파일: {FINAL_VIDEO_FILE.name} | 용량: {file_mb:.2f} MB | 해상도: 1080x1920 (30fps)")
+
+                raw_video_data = None
+                if has_video_buffer:
+                    raw_video_data = st.session_state.video_bytes.getvalue()
+                elif SESSION_FINAL_VIDEO_FILE.exists():
+                    raw_video_data = SESSION_FINAL_VIDEO_FILE.read_bytes()
+                    st.session_state.video_bytes = io.BytesIO(raw_video_data)
+                    st.session_state.video_mb = len(raw_video_data) / (1024 * 1024)
+
+                if raw_video_data:
+                    st.video(raw_video_data)
+                    v_mb = st.session_state.get("video_mb", len(raw_video_data) / (1024 * 1024))
+                    st.caption(f"용량: {v_mb:.2f} MB | 해상도: 1080x1920 (30fps)")
 
                     st.download_button(
-                        label="릴스 영상 다운로드 (MP4)",
-                        data=video_bytes,
+                        label="릴스 영상 다운로드 (다운로드 시 서버 임시 파일 즉시 파기)",
+                        data=raw_video_data,
                         file_name="final_reels.mp4",
                         mime="video/mp4",
+                        on_click=cleanup_current_session,
                     )
                 st.markdown('</div>', unsafe_allow_html=True)
 
             with col_t:
                 st.markdown('<div class="stitch-card">', unsafe_allow_html=True)
                 st.markdown('<div class="font-headline" style="font-weight:700; font-size:1.05rem; margin-bottom:0.75rem; color:#2E3230;">자동 캡처 썸네일 커버 (0.8초 지점)</div>', unsafe_allow_html=True)
-                if THUMBNAIL_FILE.exists():
-                    thumb_bytes = THUMBNAIL_FILE.read_bytes()
+
+                raw_thumb_data = None
+                if has_thumb_buffer:
+                    raw_thumb_data = st.session_state.thumb_bytes.getvalue()
+                elif SESSION_THUMBNAIL_FILE.exists():
+                    raw_thumb_data = SESSION_THUMBNAIL_FILE.read_bytes()
+                    st.session_state.thumb_bytes = io.BytesIO(raw_thumb_data)
+                    st.session_state.thumb_kb = len(raw_thumb_data) / 1024
+
+                if raw_thumb_data:
                     st.image(
-                        thumb_bytes,
+                        raw_thumb_data,
                         caption="오프닝 볼드 타이틀이 가장 선명한 순간의 고화질 캡처본 (1080x1920)",
                         use_container_width=True,
                     )
-                    thumb_kb = THUMBNAIL_FILE.stat().st_size / 1024
-                    st.caption(f"파일: {THUMBNAIL_FILE.name} | 용량: {thumb_kb:.1f} KB | 규격: 1080x1920 JPG")
+                    t_kb = st.session_state.get("thumb_kb", len(raw_thumb_data) / 1024)
+                    st.caption(f"용량: {t_kb:.1f} KB | 규격: 1080x1920 JPG")
 
                     st.download_button(
-                        label="썸네일 커버 다운로드 (JPG)",
-                        data=thumb_bytes,
+                        label="썸네일 커버 다운로드 (다운로드 시 서버 임시 파일 즉시 파기)",
+                        data=raw_thumb_data,
                         file_name="thumbnail.jpg",
                         mime="image/jpeg",
                         type="primary",
+                        on_click=cleanup_current_session,
                     )
                 st.markdown('</div>', unsafe_allow_html=True)
 
         # 4. SNS 업로드 패키지 영역
-        if SNS_PACKAGE_FILE.exists():
+        sns_content = st.session_state.get("sns_package")
+        if not sns_content and SESSION_SNS_PACKAGE_FILE.exists():
+            try:
+                with open(SESSION_SNS_PACKAGE_FILE, "r", encoding="utf-8") as f:
+                    sns_content = json.load(f)
+                    st.session_state.sns_package = sns_content
+            except Exception:
+                sns_content = None
+
+        if sns_content:
             st.markdown('<div class="stitch-card">', unsafe_allow_html=True)
             st.markdown('<div class="font-headline" style="font-weight:700; font-size:1.05rem; margin-bottom:0.75rem; color:#2E3230;">SNS 업로드 패키지 (인스타그램 & 유튜브 쇼츠)</div>', unsafe_allow_html=True)
             try:
-                with open(SNS_PACKAGE_FILE, "r", encoding="utf-8") as f:
-                    sns_content = json.load(f)
-
                 sns_title = sns_content.get("title", "")
                 sns_desc = sns_content.get("description", "")
                 sns_tags = " ".join([f"#{tag}" for tag in sns_content.get("hashtags", [])])
