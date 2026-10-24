@@ -180,7 +180,7 @@ st.markdown(
         max-width: 460px !important;
         margin: 0 auto !important;
         padding-top: 0.6rem !important;
-        padding-bottom: 7.5rem !important;
+        padding-bottom: 2.5rem !important;
         padding-left: 0.85rem !important;
         padding-right: 0.85rem !important;
     }
@@ -924,37 +924,3 @@ if st.session_state.page == "result":
         # 처음으로 돌아가기 버튼
         if st.button("새 영상 만들기", use_container_width=True):
             reset_to_home()
-
-
-# ==========================================
-# 7. 스티치 모바일 하단 내비게이션 바 (고정 5개 탭)
-# ==========================================
-st.markdown(
-    """
-    <div style="position:fixed; bottom:0; left:0; width:100%; z-index:999; background:#FFFFFF; border-top:1px solid #E4E0D8; padding:0.4rem 0.2rem 0.5rem 0.2rem; box-shadow:0 -2px 10px rgba(0,0,0,0.04);">
-        <div style="max-width:460px; margin:0 auto; display:flex; justify-content:space-around; align-items:center;">
-            <div style="display:flex; flex-direction:column; align-items:center; color:#4A7C59; font-weight:700;">
-                <span class="material-symbols-outlined" style="font-size:20px;">upload_file</span>
-                <span style="font-size:10px; margin-top:2px;">업로드</span>
-            </div>
-            <div style="display:flex; flex-direction:column; align-items:center; color:#5E5548;">
-                <span class="material-symbols-outlined" style="font-size:20px;">insights</span>
-                <span style="font-size:10px; margin-top:2px;">분석</span>
-            </div>
-            <div style="display:flex; flex-direction:column; align-items:center; color:#5E5548;">
-                <span class="material-symbols-outlined" style="font-size:20px;">movie_edit</span>
-                <span style="font-size:10px; margin-top:2px;">편집기</span>
-            </div>
-            <div style="display:flex; flex-direction:column; align-items:center; color:#5E5548;">
-                <span class="material-symbols-outlined" style="font-size:20px;">video_library</span>
-                <span style="font-size:10px; margin-top:2px;">보관함</span>
-            </div>
-            <div style="display:flex; flex-direction:column; align-items:center; color:#5E5548;">
-                <span class="material-symbols-outlined" style="font-size:20px;">tune</span>
-                <span style="font-size:10px; margin-top:2px;">설정</span>
-            </div>
-        </div>
-    </div>
-    """,
-    unsafe_allow_html=True,
-)
