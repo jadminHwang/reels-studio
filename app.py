@@ -355,6 +355,30 @@ st.markdown(
         padding: 1.25rem !important;
     }
 
+    .header-reset-wrap button {
+        background-color: #FAF8F5 !important;
+        color: #38433E !important;
+        border: 1.5px solid #D1C9BC !important;
+        border-radius: 8px !important;
+        font-size: 0.82rem !important;
+        font-weight: 700 !important;
+        padding: 0.35rem 0.85rem !important;
+        height: 34px !important;
+        min-height: 34px !important;
+        box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05) !important;
+        transition: all 0.2s ease !important;
+        margin-top: 0.1rem !important;
+        letter-spacing: 0.02em !important;
+    }
+
+    .header-reset-wrap button:hover {
+        background-color: #4A7C59 !important;
+        color: #FFFFFF !important;
+        border-color: #4A7C59 !important;
+        box-shadow: 0 2px 6px rgba(74, 124, 89, 0.25) !important;
+        transform: translateY(-1px);
+    }
+
     hr {
         border-color: #E4E0D8 !important;
         margin: 1rem 0 !important;
@@ -371,9 +395,9 @@ st.markdown(
 )
 
 # ==========================================
-# 4. 스마트폰 상단 헤더 & 처음으로(홈) 리셋
+# 4. 스마트폰 상단 헤더 & 처음으로 리셋 버튼
 # ==========================================
-col_hdr1, col_hdr2 = st.columns([4, 1])
+col_hdr1, col_hdr2 = st.columns([3.4, 1.0])
 with col_hdr1:
     st.markdown(
         """
@@ -390,8 +414,10 @@ with col_hdr1:
         unsafe_allow_html=True,
     )
 with col_hdr2:
-    if st.button("🏠 홈", help="모든 임시 데이터를 비우고 처음부터 새로 시작합니다", use_container_width=True):
+    st.markdown('<div class="header-reset-wrap">', unsafe_allow_html=True)
+    if st.button("홈", help="모든 작업을 초기화하고 첫 화면으로 이동합니다", use_container_width=True):
         reset_to_home()
+    st.markdown('</div>', unsafe_allow_html=True)
 
 st.markdown("<hr style='margin:0.5rem 0 0.85rem 0;'/>", unsafe_allow_html=True)
 
@@ -482,7 +508,7 @@ with st.sidebar:
     generate_sns = st.checkbox("SNS 텍스트 패키지 생성", value=True)
 
     st.divider()
-    if st.button("🧹 작업 초기화 (새 영상 만들기)", use_container_width=True):
+    if st.button("작업 초기화", use_container_width=True):
         reset_to_home()
 
 
@@ -561,7 +587,7 @@ if st.session_state.page == "upload":
             st.markdown(f_card, unsafe_allow_html=True)
 
     # 액션 버튼
-    analyze_btn = st.button("✨ AI 분석 및 쇼츠 세그먼트 추출", type="primary", use_container_width=True)
+    analyze_btn = st.button("AI 분석 및 쇼츠 세그먼트 추출", type="primary", use_container_width=True)
 
     if analyze_btn:
         if not existing_videos:
@@ -761,7 +787,7 @@ elif st.session_state.page in ["analysis", "editor"]:
             unsafe_allow_html=True,
         )
 
-        render_btn = st.button("🎬 원클릭 쇼츠 편집기로 전달 & 렌더링", type="primary", use_container_width=True)
+        render_btn = st.button("원클릭 쇼츠 편집기로 전달 & 렌더링", type="primary", use_container_width=True)
 
         if render_btn:
             timeline_data["cuts"] = cuts_list
@@ -857,7 +883,7 @@ if st.session_state.page == "result":
             st.caption(f"용량: {v_mb:.2f} MB | 규격: 1080x1920 세로형 (30fps)")
 
             st.download_button(
-                label="📥 릴스 영상 다운로드 (서버 임시 파일 즉시 파기)",
+                label="릴스 영상 다운로드 (MP4)",
                 data=raw_video_data,
                 file_name="final_reels.mp4",
                 mime="video/mp4",
@@ -875,7 +901,7 @@ if st.session_state.page == "result":
             st.caption(f"용량: {t_kb:.1f} KB | 1080x1920 JPG")
 
             st.download_button(
-                label="🖼️ 썸네일 다운로드 (서버 임시 파일 즉시 파기)",
+                label="썸네일 커버 다운로드 (JPG)",
                 data=raw_thumb_data,
                 file_name="thumbnail.jpg",
                 mime="image/jpeg",
@@ -887,7 +913,7 @@ if st.session_state.page == "result":
         sns_content = st.session_state.get("sns_package")
         if sns_content:
             st.markdown('<div class="stitch-card">', unsafe_allow_html=True)
-            st.markdown('<div style="font-size:0.95rem; font-weight:700; color:#2E3230; margin-bottom:0.5rem;">📱 SNS 업로드 텍스트 패키지</div>', unsafe_allow_html=True)
+            st.markdown('<div style="font-size:0.95rem; font-weight:700; color:#2E3230; margin-bottom:0.5rem;">SNS 업로드 텍스트 패키지</div>', unsafe_allow_html=True)
             sns_title = sns_content.get("title", "")
             sns_desc = sns_content.get("description", "")
             sns_tags = " ".join([f"#{tag}" for tag in sns_content.get("hashtags", [])])
@@ -896,7 +922,7 @@ if st.session_state.page == "result":
             st.markdown('</div>', unsafe_allow_html=True)
 
         # 처음으로 돌아가기 버튼
-        if st.button("✨ 새 영상 만들기 (홈으로 이동)", use_container_width=True):
+        if st.button("새 영상 만들기", use_container_width=True):
             reset_to_home()
 
 
