@@ -1,5 +1,8 @@
+import asyncio
+import io
 import json
 import os
+import re
 import shutil
 import subprocess
 import sys
@@ -63,6 +66,146 @@ def format_ass_time(seconds: float) -> str:
     if centis >= 100:
         centis = 99
     return f"{hours}:{minutes:02d}:{secs:02d}.{centis:02d}"
+
+
+# ==========================================
+# 2-2. Edge-TTS AI 음성 더빙 및 오디오 덕킹 헬퍼
+# ==========================================
+VOICE_PRESETS = {
+    "여성 활기찬 보이스 (선희)": "ko-KR-SunHiNeural",
+    "남성 깔끔한 보이스 (인준)": "ko-KR-InJoonNeural",
+}
+
+
+def clean_text_for_tts(text: str) -> str:
+    """TTS 음성 합성을 위해 자막의 줄바꿈 태그, 이모지 및 특수문자를 정제합니다."""
+    if not text:
+        return ""
+    # 줄바꿈 태그 변환
+    cleaned = text.replace("\\N", " ").replace("\n", " ")
+    # ASS 스타일 태그 제거 (예: {\fs96...})
+    cleaned = re.sub(r"\{.*?\}", "", cleaned)
+    # 이모지 및 특수 기호 제거
+    cleaned = re.sub(r"[\U00010000-\U0010ffff]", "", cleaned)
+    cleaned = re.sub(r"[#*~`^_+=[\]|✨📌🎬❤️🔥👍]", "", cleaned)
+    # 연속된 공백 축소
+    cleaned = re.sub(r"\s+", " ", cleaned).strip()
+    return cleaned
+
+
+def format_edge_tts_rate(speed: float) -> str:
+    """배속 숫자를 edge-tts의 rate 문자열(+15%, -10% 등)로 변환합니다."""
+    pct = int(round((speed - 1.0) * 100))
+    if pct >= 0:
+        return f"+{pct}%"
+    else:
+        return f"{pct}%"
+
+
+async def generate_tts_bytes_async(text: str, voice: str = "ko-KR-SunHiNeural", speed: float = 1.15) -> bytes:
+    """edge-tts를 비동기로 호출하여 오디오 바이트(mp3)를 메모리에 버퍼링합니다."""
+    try:
+        import edge_tts
+    except ImportError:
+        import subprocess
+        subprocess.run([sys.executable, "-m", "pip", "install", "edge-tts"], check=False)
+        import edge_tts
+
+    rate_str = format_edge_tts_rate(speed)
+    cleaned = clean_text_for_tts(text)
+    if not cleaned:
+        cleaned = " "
+    communicate = edge_tts.Communicate(cleaned, voice, rate=rate_str)
+    buffer = io.BytesIO()
+    async for chunk in communicate.stream():
+        if chunk["type"] == "audio":
+            buffer.write(chunk["data"])
+    return buffer.getvalue()
+
+
+def generate_tts_bytes(text: str, voice: str = "ko-KR-SunHiNeural", speed: float = 1.15) -> bytes:
+    """동기 환경에서 안전하게 TTS 바이트를 생성합니다."""
+    try:
+        loop = asyncio.get_event_loop()
+        if loop.is_running():
+            # 이미 이벤트 루프가 돌아가는 경우(예: Streamlit/Jupyter 내부)
+            import nest_asyncio
+            nest_asyncio.apply()
+            return loop.run_until_complete(generate_tts_bytes_async(text, voice, speed))
+        return loop.run_until_complete(generate_tts_bytes_async(text, voice, speed))
+    except Exception:
+        return asyncio.run(generate_tts_bytes_async(text, voice, speed))
+
+
+def build_tts_master_track(
+    cuts: list,
+    output_audio_path: Path,
+    voice: str = "ko-KR-SunHiNeural",
+    speed: float = 1.15,
+    ffmpeg_exe: str = "ffmpeg",
+    progress_callback: Optional[Callable[[str, float], None]] = None,
+) -> Optional[Path]:
+    """
+    각 컷의 자막을 순서대로 edge-tts로 생성하고,
+    컷별 시작 타임코드에 맞춰 지연(adelay)을 적용한 단일 마스터 TTS 오디오 트랙을 생성합니다.
+    """
+    temp_dir = output_audio_path.parent / "temp_tts"
+    temp_dir.mkdir(parents=True, exist_ok=True)
+
+    tts_clips = []
+    current_time_ms = 0
+
+    for idx, cut in enumerate(cuts, start=1):
+        dur = float(cut.get("duration", cut.get("duration_seconds", 2.0)))
+        raw_cap = cut.get("caption", "").strip()
+        cleaned_cap = clean_text_for_tts(raw_cap)
+
+        if cleaned_cap and len(cleaned_cap) > 0:
+            if progress_callback:
+                progress_callback(f"🎙️ AI 음성 합성 중 (컷 {idx}/{len(cuts)}): '{cleaned_cap[:12]}...'", 0.0)
+
+            raw_audio = generate_tts_bytes(cleaned_cap, voice=voice, speed=speed)
+            if raw_audio and len(raw_audio) > 0:
+                clip_file = temp_dir / f"tts_{idx:03d}.mp3"
+                clip_file.write_bytes(raw_audio)
+                tts_clips.append((clip_file, current_time_ms))
+
+        current_time_ms += int(dur * 1000)
+
+    if not tts_clips:
+        shutil.rmtree(temp_dir, ignore_errors=True)
+        return None
+
+    # FFmpeg adelay 및 amix 필터를 통해 단일 마스터 트랙 생성
+    inputs_cmd = []
+    filter_parts = []
+    mix_labels = []
+
+    for i, (fpath, delay_ms) in enumerate(tts_clips):
+        inputs_cmd.extend(["-i", str(fpath)])
+        filter_parts.append(f"[{i}:a]adelay={delay_ms}|{delay_ms}[d{i}]")
+        mix_labels.append(f"[d{i}]")
+
+    all_mix = "".join(mix_labels)
+    filter_complex = f"{';'.join(filter_parts)};{all_mix}amix=inputs={len(tts_clips)}:normalize=0:dropout_transition=0[aout]"
+
+    cmd = [
+        ffmpeg_exe,
+        "-y",
+        *inputs_cmd,
+        "-filter_complex", filter_complex,
+        "-map", "[aout]",
+        "-c:a", "aac",
+        "-b:a", "192k",
+        str(output_audio_path),
+    ]
+
+    res = subprocess.run(cmd, capture_output=True, text=True, encoding="utf-8", errors="ignore")
+    shutil.rmtree(temp_dir, ignore_errors=True)
+
+    if res.returncode == 0 and output_audio_path.exists():
+        return output_audio_path
+    return None
 
 
 # ==========================================
@@ -279,6 +422,9 @@ def render_reels(
     selected_font: Optional[str] = None,
     use_zoom: bool = False,
     use_bgm: bool = False,
+    use_tts: bool = False,
+    tts_voice: str = "ko-KR-SunHiNeural",
+    tts_speed: float = 1.15,
     progress_callback: Optional[Callable[[str, float], None]] = None,
 ) -> Path:
     """타임라인 데이터를 기반으로 9:16 릴스 영상 인코딩, 자막 번인, 썸네일 추출을 완수합니다."""
@@ -419,6 +565,46 @@ def render_reels(
         bgm_res = subprocess.run(bgm_cmd, capture_output=True, text=True, encoding="utf-8", errors="ignore")
         if bgm_res.returncode == 0:
             merged_with_audio = bgm_mixed_file
+
+    # 3-2. AI 음성 더빙(TTS) 및 스마트 오디오 덕킹(Audio Ducking)
+    if use_tts:
+        if progress_callback:
+            progress_callback("🎙️ AI 내레이션 더빙 생성 및 스마트 오디오 덕킹 믹싱 중...", (total_cuts + 1.8) / (total_cuts + 3))
+
+        tts_master_path = temp_dir / "tts_master.aac"
+        tts_built = build_tts_master_track(
+            cuts,
+            tts_master_path,
+            voice=tts_voice,
+            speed=tts_speed,
+            ffmpeg_exe=ffmpeg_exe,
+            progress_callback=progress_callback,
+        )
+
+        if tts_built and tts_master_path.exists():
+            ducked_file = temp_dir / "merged_with_tts.mp4"
+            # 오디오 덕킹: sidechaincompress 필터로 TTS 음성 재생 시 배경음 볼륨을 부드럽게 70% 압축/인하
+            # tts 음성은 1.25배 볼륨으로 또렷하게 부스팅
+            duck_filter = (
+                "[0:a][1:a]sidechaincompress=threshold=0.08:ratio=4:attack=50:release=350[bg_ducked];"
+                "[bg_ducked][1:a]amix=inputs=2:weights=1 1.25:dropout_transition=2[aout]"
+            )
+            duck_cmd = [
+                ffmpeg_exe,
+                "-y",
+                "-i", str(merged_with_audio),
+                "-i", str(tts_master_path),
+                "-filter_complex", duck_filter,
+                "-map", "0:v",
+                "-map", "[aout]",
+                "-c:v", "copy",
+                "-c:a", "aac",
+                "-b:a", "192k",
+                str(ducked_file),
+            ]
+            duck_res = subprocess.run(duck_cmd, capture_output=True, text=True, encoding="utf-8", errors="ignore")
+            if duck_res.returncode == 0:
+                merged_with_audio = ducked_file
 
     # 4. ASS 자막 생성 및 Burn-in 렌더링
     if progress_callback:

@@ -506,6 +506,41 @@ with st.sidebar:
 
     use_zoom = st.checkbox("다이내믹 줌 트랜지션", value=True)
     use_bgm = st.checkbox("배경음악 자동 믹싱", value=True)
+
+    st.markdown('<div style="font-weight:700; font-size:0.85rem; color:#5E5548; margin-top:0.75rem; margin-bottom:0.25rem;">AI 음성 더빙 & 오디오</div>', unsafe_allow_html=True)
+    use_tts = st.checkbox("AI 내레이션 더빙 사용", value=True)
+
+    if use_tts:
+        voice_labels = list(editor.VOICE_PRESETS.keys())
+        selected_voice_label = st.selectbox(
+            "더빙 목소리 선택",
+            options=voice_labels,
+            index=0,
+            help="완전 무료 고품질 한국어 뉴럴 보이스 (Edge-TTS)",
+        )
+        selected_voice_id = editor.VOICE_PRESETS[selected_voice_label]
+
+        tts_speed = st.slider(
+            "음성 속도",
+            min_value=0.8,
+            max_value=1.5,
+            value=1.15,
+            step=0.05,
+            format="%.2fx",
+            help="숏폼의 빠른 템포와 리듬감에 맞는 1.1x ~ 1.2x 속도를 추천합니다.",
+        )
+
+        # 보이스 실시간 미리듣기 위젯
+        if st.button("목소리 미리듣기", use_container_width=True):
+            with st.spinner("AI 목소리 합성 중..."):
+                sample_text = "안녕하세요! 오늘의 초간단 레시피를 시작합니다."
+                sample_bytes = editor.generate_tts_bytes(sample_text, voice=selected_voice_id, speed=tts_speed)
+                if sample_bytes:
+                    st.audio(sample_bytes, format="audio/mp3")
+    else:
+        selected_voice_id = "ko-KR-SunHiNeural"
+        tts_speed = 1.15
+
     generate_sns = st.checkbox("SNS 텍스트 패키지 생성", value=True)
 
     st.divider()
@@ -858,6 +893,9 @@ elif st.session_state.page in ["analysis", "editor"]:
                         selected_font=selected_font,
                         use_zoom=use_zoom,
                         use_bgm=use_bgm,
+                        use_tts=use_tts,
+                        tts_voice=selected_voice_id,
+                        tts_speed=tts_speed,
                         progress_callback=r_cb,
                     )
 
